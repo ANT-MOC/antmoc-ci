@@ -2,7 +2,7 @@
 # Stage 1: build packages
 #===============================================================================
 ARG SPACK_IMAGE="spack/ubuntu-bionic"
-ARG SPACK_VERSION="latest"
+ARG SPACK_VERSION="0.16.0"
 FROM ${SPACK_IMAGE}:${SPACK_VERSION} AS builder
 
 #-------------------------------------------------------------------------------
@@ -161,6 +161,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         llvm-9 \
         libomp-9-dev \
         kmod \
+        openssh-server \
         sudo \
         rocm-dev \
         rocthrust \
