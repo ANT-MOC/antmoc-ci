@@ -4,7 +4,7 @@
 
 # Build-time arguments
 SPACK_IMAGE   ?= "spack/ubuntu-bionic"
-SPACK_VERSION ?= "0.16.0"
+SPACK_VERSION ?= "latest"
 
 # Target
 TARGET ?= "x86_64"

@@ -2,7 +2,7 @@
 # Stage 1: build packages
 #===============================================================================
 ARG SPACK_IMAGE="spack/ubuntu-bionic"
-ARG SPACK_VERSION="0.16.0"
+ARG SPACK_VERSION="v0.17.1"
 FROM ${SPACK_IMAGE}:${SPACK_VERSION} AS builder
 
 #-------------------------------------------------------------------------------
@@ -93,23 +93,23 @@ ARG GCC_SPEC="gcc"
 ARG CLANG_SPEC="clang"
 
 # MPI specs
-ARG MPICH_SPEC="mpich@3.3.2~fortran"
-ARG OPENMPI_SPEC="openmpi@4.0.5"
+ARG MPICH_SPEC="mpich~fortran"
+ARG OPENMPI_SPEC="openmpi"
 
-RUN spack mirror create -D -d $MIRROR_DIR lcov@1.14 %$GCC_SPEC \
-&&  spack install --fail-fast -ny         lcov@1.14 %$GCC_SPEC
 RUN spack mirror create -D -d $MIRROR_DIR cmake %$GCC_SPEC \
-&&  spack install --fail-fast -ny         cmake %$GCC_SPEC
+&&  spack install --fail-fast -ny --reuse cmake %$GCC_SPEC
+RUN spack mirror create -D -d $MIRROR_DIR lcov@1.14 %$GCC_SPEC \
+&&  spack install --fail-fast -ny --reuse lcov@1.14 %$GCC_SPEC
 RUN spack mirror create -D -d $MIRROR_DIR antmoc %$CLANG_SPEC ~mpi \
-&&  spack install --fail-fast -ny         antmoc %$CLANG_SPEC ~mpi
+&&  spack install --fail-fast -ny --reuse antmoc %$CLANG_SPEC ~mpi
 RUN spack mirror create -D -d $MIRROR_DIR antmoc %$CLANG_SPEC +mpi ^$MPICH_SPEC \
-&&  spack install --fail-fast -ny         antmoc %$CLANG_SPEC +mpi ^$MPICH_SPEC
+&&  spack install --fail-fast -ny --reuse antmoc %$CLANG_SPEC +mpi ^$MPICH_SPEC
 RUN spack mirror create -D -d $MIRROR_DIR antmoc %$GCC_SPEC ~mpi \
-&&  spack install --fail-fast -ny         antmoc %$GCC_SPEC ~mpi
+&&  spack install --fail-fast -ny --reuse antmoc %$GCC_SPEC ~mpi
 RUN spack mirror create -D -d $MIRROR_DIR antmoc %$GCC_SPEC +mpi ^$MPICH_SPEC \
-&&  spack install --fail-fast -ny         antmoc %$GCC_SPEC +mpi ^$MPICH_SPEC
+&&  spack install --fail-fast -ny --reuse antmoc %$GCC_SPEC +mpi ^$MPICH_SPEC
 RUN spack mirror create -D -d $MIRROR_DIR antmoc %$GCC_SPEC +mpi ^$OPENMPI_SPEC \
-&&  spack install --fail-fast -ny         antmoc %$GCC_SPEC +mpi ^$OPENMPI_SPEC
+&&  spack install --fail-fast -ny --reuse antmoc %$GCC_SPEC +mpi ^$OPENMPI_SPEC
 RUN spack gc -y && spack clean -a
 
 
