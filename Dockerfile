@@ -6,12 +6,42 @@ ENV UBUNTU_CODE=${UBUNTU_CODE:-"focal"}
 
 LABEL maintainer="An Wang <wangan.cs@gmail.com>"
 
-#-------------------------------------------------------------------------------
-# Set up environments
-#-------------------------------------------------------------------------------
 USER root
 WORKDIR /tmp
 
+#-------------------------------------------------------------------------------
+# Install system compilers and libraries
+#-------------------------------------------------------------------------------
+# Register the ROCM package repository, and install rocm-dev package
+ARG ROCM_VERSION=5.3
+ARG AMDGPU_VERSION=5.3
+
+# install LLVM and CMake for spack, and
+# install ROCm HIP, see https://github.com/ROCm/ROCm-docker/blob/master/dev/Dockerfile-ubuntu-20.04
+COPY etc/apt/ /etc/apt/
+RUN sed -i -e "s/focal/$UBUNTU_CODE/g" /etc/apt/sources.list \
+      && apt-get update \
+      && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl libnuma-dev gnupg \
+      && curl -sL https://repo.radeon.com/rocm/rocm.gpg.key | apt-key add - \
+      && printf "deb [arch=amd64] https://repo.radeon.com/rocm/apt/$ROCM_VERSION/ ubuntu main" | tee /etc/apt/sources.list.d/rocm.list \
+      && printf "deb [arch=amd64] https://repo.radeon.com/amdgpu/$AMDGPU_VERSION/ubuntu $UBUNTU_CODE main" | tee /etc/apt/sources.list.d/amdgpu.list \
+      && apt-get update \
+      && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      sudo \
+      libelf1 \
+      kmod \
+      file \
+      python3 \
+      python3-pip \
+      rocm-dev \
+      build-essential \
+      llvm-10 clang-10 libomp-10-dev cmake  openssh-server && \
+      apt-get clean && \
+      rm -rf /var/lib/apt/lists/*
+
+#-------------------------------------------------------------------------------
+# Set up spack
+#-------------------------------------------------------------------------------
 # set Spack paths which should be shared between docker stages
 ENV SPACK_ROOT=/opt/spack
 ENV CONFIG_DIR=/etc/spack
@@ -28,7 +58,6 @@ RUN set -e; \
 
 # copy a self-hosted spack repo to the image
 COPY repo/ $REPO_DIR/
-COPY etc/apt/ /etc/apt/
 
 # hold a local package mirror as needed
 #COPY mirror/ $MIRROR_DIR/
@@ -50,34 +79,8 @@ RUN (echo "config:" \
         &&   echo "    target: [$TARGET]") > $CONFIG_DIR/packages.yaml
 
 #-------------------------------------------------------------------------------
-# Find or install compilers
+# Find system compilers
 #-------------------------------------------------------------------------------
-# Register the ROCM package repository, and install rocm-dev package
-ARG ROCM_VERSION=5.3
-ARG AMDGPU_VERSION=5.3
-
-# install LLVM and CMake for spack, and
-# install ROCm HIP, see https://github.com/ROCm/ROCm-docker/blob/master/dev/Dockerfile-ubuntu-20.04
-RUN sed -i -e "s/focal/$UBUNTU_CODE/g" /etc/apt/sources.list \
-      && apt-get update \
-      && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl libnuma-dev gnupg \
-      && curl -sL https://repo.radeon.com/rocm/rocm.gpg.key | apt-key add - \
-      && printf "deb [arch=amd64] https://repo.radeon.com/rocm/apt/$ROCM_VERSION/ ubuntu main" | tee /etc/apt/sources.list.d/rocm.list \
-      && printf "deb [arch=amd64] https://repo.radeon.com/amdgpu/$AMDGPU_VERSION/ubuntu $UBUNTU_CODE main" | tee /etc/apt/sources.list.d/amdgpu.list \
-      && apt-get update \
-      && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-      sudo \
-      libelf1 \
-      kmod \
-      file \
-      python3 \
-      python3-pip \
-      rocm-dev \
-      build-essential \
-      llvm-10 clang-10 libomp-10-dev cmake  openssh-server && \
-      apt-get clean && \
-      rm -rf /var/lib/apt/lists/*
-
 # find external packages and system compilers
 RUN spack compiler find \
     && spack config get compilers > $CONFIG_DIR/compilers.yaml \
@@ -147,11 +150,10 @@ RUN (echo "#!/usr/bin/env bash" \
 &&   chmod u+x ~/setup-env.sh
 
 #-------------------------------------------------------------------------------
-# Reset the entrypoint
+# Reset the entrypoint, add CMD
 #-------------------------------------------------------------------------------
-ENTRYPOINT []
-CMD ["/bin/bash"]
-
+ENTRYPOINT ["/bin/bash"]
+CMD ["interactive-shell"]
 
 #-----------------------------------------------------------------------
 # Build-time metadata as defined at http://label-schema.org

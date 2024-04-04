@@ -12,7 +12,7 @@ TARGET ?= "x86_64"
 
 # Image name
 DOCKER_IMAGE ?= antmoc/antmoc-ci
-DOCKER_TAG   := 0.1.16-a
+DOCKER_TAG   := 0.1.16-alpha
 
 # Default user
 USER_NAME ?= hpcer
