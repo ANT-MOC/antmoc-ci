@@ -14,7 +14,7 @@ class Antmoc(BundlePackage):
 
     depends_on('cmake@3.16:', type='build')
     depends_on('mpi@3.0:', when='+mpi', type=('build', 'link', 'run'))
-    depends_on('cxxopts@master')
+    depends_on('cxxopts@3.0.0:')
     depends_on('fmt@6.0.0:')
     depends_on('tinyxml2@7.0.0:')
     depends_on('toml11@3.6.0:')
