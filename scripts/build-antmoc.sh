@@ -1,12 +1,7 @@
 #!/usr/bin/env bash
-sudo -Hi -u root bash << EOF
-source /home/hpcer/setup-env.sh
-spack uninstall -fy fmt%gcc
-spack install -ny googletest@=1.10.0+gmock %gcc
-spack install -ny fmt@=8.0.0 %gcc
-EOF
 sudo -Hi -u hpcer bash << EOF
 set -e
+source ~/.bashrc
 whoami
 
 # Always mount ANT-MOC to this directory in containers
@@ -29,13 +24,7 @@ CTEST_RANDOM="ON"
 USE_SPECS="antmoc %gcc ~mpi"
 
 # Build ANT-MOC
-spack load cmake%gcc \
-cxxopts%gcc \
-fmt@=8.0.0%gcc \
-tinyxml2%gcc \
-toml11%gcc \
-hdf5~mpi%gcc \
-googletest%gcc
+spack load cmake%gcc \$USE_SPECS
 spack find --loaded
 
 #cmake -S . -B build \
