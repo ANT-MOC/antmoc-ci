@@ -1,11 +1,10 @@
-#===============================================================================
-# Stage 1: build packages
-#===============================================================================
 ARG SPACK_VERSION="0.21.2"
 ARG SPACK_IMAGE="spack/ubuntu-focal"
 FROM ${SPACK_IMAGE}:${SPACK_VERSION} AS builder
 ARG UBUNTU_CODE
 ENV UBUNTU_CODE=${UBUNTU_CODE:-"focal"}
+
+LABEL maintainer="An Wang <wangan.cs@gmail.com>"
 
 #-------------------------------------------------------------------------------
 # Set up environments
@@ -29,52 +28,42 @@ RUN set -e; \
 
 # copy a self-hosted spack repo to the image
 COPY repo/ $REPO_DIR/
+COPY etc/apt/ /etc/apt/
 
 # hold a local package mirror as needed
 #COPY mirror/ $MIRROR_DIR/
-
-# update source list
-COPY etc/apt/ /etc/apt/
-RUN sed -i -e "s/focal/$UBUNTU_CODE/g" /etc/apt/sources.list
 
 # set the arch for packages
 ARG TARGET="x86_64"
 
 # generate configurations
 RUN (echo "config:" \
-&&   echo "  install_tree:" \
-&&   echo "    root: $INSTALL_DIR" \
-&&   echo "  connect_timeout: 600") > $CONFIG_DIR/config.yaml
-
-RUN (echo "mirrors:" \
-&&   echo "  local: file://$MIRROR_DIR") > $CONFIG_DIR/mirrors.yaml
-
-RUN (echo "repos:" \
-&&   echo "  - $REPO_DIR") > $CONFIG_DIR/repos.yaml
-
-RUN (echo "packages:" \
-&&   echo "  all:" \
-&&   echo "    target: [$TARGET]") > $CONFIG_DIR/packages.yaml
+    &&   echo "  install_tree:" \
+    &&   echo "    root: $INSTALL_DIR" \
+    &&   echo "  connect_timeout: 600") > $CONFIG_DIR/config.yaml \
+    && (echo "mirrors:" \
+        &&   echo "  local: file://$MIRROR_DIR") > $CONFIG_DIR/mirrors.yaml \
+    && (echo "repos:" \
+        &&   echo "  - $REPO_DIR") > $CONFIG_DIR/repos.yaml \
+    && (echo "packages:" \
+        &&   echo "  all:" \
+        &&   echo "    target: [$TARGET]") > $CONFIG_DIR/packages.yaml
 
 #-------------------------------------------------------------------------------
 # Find or install compilers
 #-------------------------------------------------------------------------------
-# install LLVM and CMake
-# RUN apt-get update && apt-get install -y \
-#         llvm-10 \
-#         clang-10 \
-#         libomp-10-dev \
-#         cmake
-
 # Register the ROCM package repository, and install rocm-dev package
 ARG ROCM_VERSION=5.3
 ARG AMDGPU_VERSION=5.3
 
-RUN apt-get update \
+# install LLVM and CMake for spack, and
+# install ROCm HIP, see https://github.com/ROCm/ROCm-docker/blob/master/dev/Dockerfile-ubuntu-20.04
+RUN sed -i -e "s/focal/$UBUNTU_CODE/g" /etc/apt/sources.list \
+      && apt-get update \
       && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl libnuma-dev gnupg \
       && curl -sL https://repo.radeon.com/rocm/rocm.gpg.key | apt-key add - \
       && printf "deb [arch=amd64] https://repo.radeon.com/rocm/apt/$ROCM_VERSION/ ubuntu main" | tee /etc/apt/sources.list.d/rocm.list \
-      && printf "deb [arch=amd64] https://repo.radeon.com/amdgpu/$AMDGPU_VERSION/ubuntu focal main" | tee /etc/apt/sources.list.d/amdgpu.list \
+      && printf "deb [arch=amd64] https://repo.radeon.com/amdgpu/$AMDGPU_VERSION/ubuntu $UBUNTU_CODE main" | tee /etc/apt/sources.list.d/amdgpu.list \
       && apt-get update \
       && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
       sudo \
@@ -84,27 +73,24 @@ RUN apt-get update \
       python3 \
       python3-pip \
       rocm-dev \
-      build-essential && \
-      apt-get clean
+      build-essential \
+      llvm-10 clang-10 libomp-10-dev cmake  openssh-server && \
+      apt-get clean && \
+      rm -rf /var/lib/apt/lists/*
 
-# find external packages
-RUN spack external find --scope system --not-buildable \
-        gcc \
-        llvm \
-        hip \
-        autoconf \
-        automake \
-        cmake \
-        gmake \
-        libtool \
-        perl
-
-# find system gcc and clang
-RUN spack compiler find; \
-    spack config get compilers > $CONFIG_DIR/compilers.yaml; \
-    spack compiler list
-RUN spack external find --scope system --not-buildable --all
-RUN spack debug report && spack find -v && exit 1
+# find external packages and system compilers
+RUN spack compiler find \
+    && spack config get compilers > $CONFIG_DIR/compilers.yaml \
+    && spack compiler list \
+    && spack external find --scope system --not-buildable \
+    gcc \
+    llvm \
+    autoconf \
+    automake \
+    cmake \
+    gmake \
+    libtool \
+    perl
 
 #-------------------------------------------------------------------------------
 # Install dependencies for antmoc
@@ -117,55 +103,18 @@ ARG CLANG_SPEC="clang"
 ARG MPICH_SPEC="mpich~fortran"
 ARG OPENMPI_SPEC="openmpi"
 
-RUN spack install --fail-fast -ny cmake %$GCC_SPEC
-RUN spack install --fail-fast -ny lcov@=2.0 %$GCC_SPEC
-RUN spack install --fail-fast -ny antmoc %$CLANG_SPEC ~mpi
-RUN spack install --fail-fast -ny antmoc %$CLANG_SPEC +mpi ^$MPICH_SPEC
-RUN spack install --fail-fast -ny antmoc %$GCC_SPEC ~mpi
-RUN spack install --fail-fast -ny antmoc %$GCC_SPEC +mpi ^$MPICH_SPEC
-RUN spack install --fail-fast -ny antmoc %$GCC_SPEC +mpi ^$OPENMPI_SPEC
-RUN spack gc -y && spack clean -a
+RUN deps=(\
+    "cmake %$GCC_SPEC" \
+    "lcov@=2.0 %$GCC_SPEC" \
+    "antmoc %$CLANG_SPEC ~mpi" \
+    "antmoc %$CLANG_SPEC +mpi ^$MPICH_SPEC" \
+    "antmoc %$GCC_SPEC ~mpi" \
+    "antmoc %$GCC_SPEC +mpi ^$MPICH_SPEC" \
+    "antmoc %$GCC_SPEC +mpi ^$OPENMPI_SPEC") \
+    && for dep in "${deps[@]}"; do spack install --fail-fast -ny $dep; done \
+    && spack gc -y && spack clean -a \
+    && spack debug report && spack find -v # Check spack and dependency installation
 
-# Check spack and dependency installation
-RUN spack debug report && spack find -v
-
-
-#===============================================================================
-# Stage 2: build the runtime environment
-#===============================================================================
-ARG SPACK_IMAGE
-ARG SPACK_VERSION
-FROM ${SPACK_IMAGE}:${SPACK_VERSION}
-
-LABEL maintainer="An Wang <wangan.cs@gmail.com>"
-
-#-------------------------------------------------------------------------------
-# Copy artifacts from stage 1 to stage 2
-#-------------------------------------------------------------------------------
-COPY --from=builder $CONFIG_DIR $CONFIG_DIR
-COPY --from=builder $INSTALL_DIR $INSTALL_DIR
-COPY --from=builder $REPO_DIR $REPO_DIR
-
-#-------------------------------------------------------------------------------
-# Install system packages
-#-------------------------------------------------------------------------------
-# install apt repositries
-COPY etc/apt/ /etc/apt/
-
-# install CMake, LLVM, and ROCm
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        wget \
-        cmake \
-        clang-10 \
-        llvm-10 \
-        libomp-10-dev \
-        kmod \
-        openssh-server \
-        sudo \
-&&  rm -f /usr/bin/clang /usr/bin/clang++ \
-&&  ln -s /usr/bin/clang-10 /usr/bin/clang \
-&&  ln -s /usr/bin/clang++-10 /usr/bin/clang++ \
-&&  rm -rf /var/lib/apt/lists/*
 
 #-------------------------------------------------------------------------------
 # Add a user
@@ -176,7 +125,7 @@ ARG USER_NAME=hpcer
 # create the first user
 RUN set -e; \
     \
-    if ! id -u $USER_NAME > /dev/null 2>&1; then \
+    if ! id -u $USER_NAME &> /dev/null; then \
         useradd -m $USER_NAME; \
         echo "$USER_NAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers; \
     fi
