@@ -27,13 +27,14 @@ RUN set -e; \
     mkdir -p $REPO_DIR; \
     mkdir -p $MIRROR_DIR
 
-# copy files from the context to the image
-COPY etc/apt/ /etc/apt/
+# copy a self-hosted spack repo to the image
 COPY repo/ $REPO_DIR/
-# to hold a local package mirror as needed
+
+# hold a local package mirror as needed
 #COPY mirror/ $MIRROR_DIR/
 
-# Update source list
+# update source list
+COPY etc/apt/ /etc/apt/
 RUN sed -i -e "s/focal/$UBUNTU_CODE/g" /etc/apt/sources.list
 
 # set the arch for packages
@@ -92,13 +93,14 @@ ARG CLANG_SPEC="clang"
 ARG MPICH_SPEC="mpich~fortran"
 ARG OPENMPI_SPEC="openmpi"
 
-RUN spack install --fail-fast -ny cmake %$GCC_SPEC
-RUN spack install --fail-fast -ny lcov@=2.0 %$GCC_SPEC
-RUN spack install --fail-fast -ny antmoc %$CLANG_SPEC ~mpi
-RUN spack install --fail-fast -ny antmoc %$CLANG_SPEC +mpi ^$MPICH_SPEC
-RUN spack install --fail-fast -ny antmoc %$GCC_SPEC ~mpi
-RUN spack install --fail-fast -ny antmoc %$GCC_SPEC +mpi ^$MPICH_SPEC
-RUN spack install --fail-fast -ny antmoc %$GCC_SPEC +mpi ^$OPENMPI_SPEC
+RUN deps=("cmake %$GCC_SPEC" \
+    "lcov@=2.0 %$GCC_SPEC" \
+    "antmoc %$CLANG_SPEC ~mpi" \
+    "antmoc %$CLANG_SPEC +mpi ^$MPICH_SPEC" \
+    "antmoc %$GCC_SPEC ~mpi" \
+    "antmoc %$GCC_SPEC +mpi ^$MPICH_SPEC" \
+    "antmoc %$GCC_SPEC +mpi ^$OPENMPI_SPEC") \
+    && for dep in "${deps[@]}"; do spack install --fail-fast -ny $dep; done
 RUN spack gc -y && spack clean -a
 
 # Check spack and dependency installation
