@@ -1,9 +1,11 @@
 #===============================================================================
 # Stage 1: build packages
 #===============================================================================
-ARG SPACK_IMAGE="spack/ubuntu-bionic"
-ARG SPACK_VERSION="v0.17.1"
+ARG SPACK_VERSION="0.21.2"
+ARG SPACK_IMAGE="spack/ubuntu-focal"
 FROM ${SPACK_IMAGE}:${SPACK_VERSION} AS builder
+ARG UBUNTU_CODE
+ENV UBUNTU_CODE=${UBUNTU_CODE:-"focal"}
 
 #-------------------------------------------------------------------------------
 # Set up environments
@@ -12,22 +14,27 @@ USER root
 WORKDIR /tmp
 
 # set Spack paths which should be shared between docker stages
-ARG SPACK_ROOT=/opt/spack
-ARG CONFIG_DIR=/etc/spack
-ARG INSTALL_DIR=/opt/software
-ARG MIRROR_DIR=/opt/mirror
-ARG REPO_DIR=/opt/repo
+ENV SPACK_ROOT=/opt/spack
+ENV CONFIG_DIR=/etc/spack
+ENV INSTALL_DIR=/opt/software
+ENV MIRROR_DIR=/opt/mirror
+ENV REPO_DIR=/opt/repo
 
 # create directories for Spack
 RUN set -e; \
     mkdir -p $CONFIG_DIR; \
     mkdir -p $INSTALL_DIR; \
+    mkdir -p $REPO_DIR; \
     mkdir -p $MIRROR_DIR
 
 # copy files from the context to the image
 COPY etc/apt/ /etc/apt/
-#COPY mirror/ $MIRROR_DIR/
 COPY repo/ $REPO_DIR/
+# to hold a local package mirror as needed
+#COPY mirror/ $MIRROR_DIR/
+
+# Update source list
+RUN sed -i -e "s/focal/$UBUNTU_CODE/g" /etc/apt/sources.list
 
 # set the arch for packages
 ARG TARGET="x86_64"
@@ -36,7 +43,7 @@ ARG TARGET="x86_64"
 RUN (echo "config:" \
 &&   echo "  install_tree:" \
 &&   echo "    root: $INSTALL_DIR" \
-&&   echo "  connect_timeout: 0") > $CONFIG_DIR/config.yaml
+&&   echo "  connect_timeout: 600") > $CONFIG_DIR/config.yaml
 
 RUN (echo "mirrors:" \
 &&   echo "  local: file://$MIRROR_DIR") > $CONFIG_DIR/mirrors.yaml
@@ -51,23 +58,11 @@ RUN (echo "packages:" \
 #-------------------------------------------------------------------------------
 # Find or install compilers
 #-------------------------------------------------------------------------------
-# install apt repositries
-RUN apt-get update && apt-get install -y \
-        apt-transport-https \
-        ca-certificates \
-        gnupg \
-        software-properties-common \
-        wget \
-&&  wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | \
-    gpg --dearmor - | \
-    tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null \
-&&  apt-add-repository 'deb https://apt.kitware.com/ubuntu/ bionic main'
-
 # install LLVM and CMake
 RUN apt-get update && apt-get install -y \
-        llvm-9 \
-        clang-9 \
-        libomp-9-dev \
+        llvm-10 \
+        clang-10 \
+        libomp-10-dev \
         cmake
 
 # find external packages
@@ -77,13 +72,14 @@ RUN spack external find --scope system --not-buildable \
         autoconf \
         automake \
         cmake \
+        gmake \
         libtool \
         perl
 
 # find system gcc and clang
 RUN spack compiler find; \
     spack config get compilers > $CONFIG_DIR/compilers.yaml; \
-    spack compilers
+    spack compiler list
 
 #-------------------------------------------------------------------------------
 # Install dependencies for antmoc
@@ -96,21 +92,17 @@ ARG CLANG_SPEC="clang"
 ARG MPICH_SPEC="mpich~fortran"
 ARG OPENMPI_SPEC="openmpi"
 
-RUN spack mirror create -D -d $MIRROR_DIR cmake %$GCC_SPEC \
-&&  spack install --fail-fast -ny --reuse cmake %$GCC_SPEC
-RUN spack mirror create -D -d $MIRROR_DIR lcov@1.14 %$GCC_SPEC \
-&&  spack install --fail-fast -ny --reuse lcov@1.14 %$GCC_SPEC
-RUN spack mirror create -D -d $MIRROR_DIR antmoc %$CLANG_SPEC ~mpi \
-&&  spack install --fail-fast -ny --reuse antmoc %$CLANG_SPEC ~mpi
-RUN spack mirror create -D -d $MIRROR_DIR antmoc %$CLANG_SPEC +mpi ^$MPICH_SPEC \
-&&  spack install --fail-fast -ny --reuse antmoc %$CLANG_SPEC +mpi ^$MPICH_SPEC
-RUN spack mirror create -D -d $MIRROR_DIR antmoc %$GCC_SPEC ~mpi \
-&&  spack install --fail-fast -ny --reuse antmoc %$GCC_SPEC ~mpi
-RUN spack mirror create -D -d $MIRROR_DIR antmoc %$GCC_SPEC +mpi ^$MPICH_SPEC \
-&&  spack install --fail-fast -ny --reuse antmoc %$GCC_SPEC +mpi ^$MPICH_SPEC
-RUN spack mirror create -D -d $MIRROR_DIR antmoc %$GCC_SPEC +mpi ^$OPENMPI_SPEC \
-&&  spack install --fail-fast -ny --reuse antmoc %$GCC_SPEC +mpi ^$OPENMPI_SPEC
+RUN spack install --fail-fast -ny cmake %$GCC_SPEC
+RUN spack install --fail-fast -ny lcov@=2.0 %$GCC_SPEC
+RUN spack install --fail-fast -ny antmoc %$CLANG_SPEC ~mpi
+RUN spack install --fail-fast -ny antmoc %$CLANG_SPEC +mpi ^$MPICH_SPEC
+RUN spack install --fail-fast -ny antmoc %$GCC_SPEC ~mpi
+RUN spack install --fail-fast -ny antmoc %$GCC_SPEC +mpi ^$MPICH_SPEC
+RUN spack install --fail-fast -ny antmoc %$GCC_SPEC +mpi ^$OPENMPI_SPEC
 RUN spack gc -y && spack clean -a
+
+# Check spack and dependency installation
+RUN spack debug report && spack find -v
 
 
 #===============================================================================
@@ -125,10 +117,6 @@ LABEL maintainer="An Wang <wangan.cs@gmail.com>"
 #-------------------------------------------------------------------------------
 # Copy artifacts from stage 1 to stage 2
 #-------------------------------------------------------------------------------
-ARG CONFIG_DIR=/etc/spack
-ARG INSTALL_DIR=/opt/software
-ARG REPO_DIR=/opt/repo
-
 COPY --from=builder $CONFIG_DIR $CONFIG_DIR
 COPY --from=builder $INSTALL_DIR $INSTALL_DIR
 COPY --from=builder $REPO_DIR $REPO_DIR
@@ -138,36 +126,20 @@ COPY --from=builder $REPO_DIR $REPO_DIR
 #-------------------------------------------------------------------------------
 # install apt repositries
 COPY etc/apt/ /etc/apt/
-RUN apt-get update && apt-get install -y \
-        apt-transport-https \
-        ca-certificates \
-        gnupg \
-        software-properties-common \
-        wget \
-&&  wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | \
-    gpg --dearmor - | \
-    tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null \
-&&  apt-add-repository 'deb https://apt.kitware.com/ubuntu/ bionic main' \
-    \
-&&  wget -q -O - https://repo.radeon.com/rocm/rocm.gpg.key | \
-    apt-key add - \
-&&  echo 'deb [arch=amd64] https://repo.radeon.com/rocm/apt/debian/ xenial main' | \
-    tee /etc/apt/sources.list.d/rocm.list
 
 # install CMake, LLVM, and ROCm
 RUN apt-get update && apt-get install -y --no-install-recommends \
+        wget \
         cmake \
-        clang-9 \
-        llvm-9 \
-        libomp-9-dev \
+        clang-10 \
+        llvm-10 \
+        libomp-10-dev \
         kmod \
         openssh-server \
         sudo \
-        rocm-dev \
-        rocthrust \
 &&  rm -f /usr/bin/clang /usr/bin/clang++ \
-&&  ln -s /usr/bin/clang-9 /usr/bin/clang \
-&&  ln -s /usr/bin/clang++-9 /usr/bin/clang++ \
+&&  ln -s /usr/bin/clang-10 /usr/bin/clang \
+&&  ln -s /usr/bin/clang++-10 /usr/bin/clang++ \
 &&  rm -rf /var/lib/apt/lists/*
 
 #-------------------------------------------------------------------------------

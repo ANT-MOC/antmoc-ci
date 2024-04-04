@@ -3,15 +3,16 @@
 #===============================================================================
 
 # Build-time arguments
-SPACK_IMAGE   ?= "spack/ubuntu-bionic"
-SPACK_VERSION ?= "latest"
+UBUNTU_CODE   ?= "focal"
+SPACK_VERSION ?= "0.21.2"
+SPACK_IMAGE    = "spack/ubuntu-$(UBUNTU_CODE)"
 
 # Target
 TARGET ?= "x86_64"
 
 # Image name
 DOCKER_IMAGE ?= antmoc/antmoc-ci
-DOCKER_TAG   := 0.1.15
+DOCKER_TAG   := 0.1.16-a
 
 # Default user
 USER_NAME ?= hpcer
@@ -39,8 +40,9 @@ release: docker_build docker_push output
 docker_build:
 	# Build Docker image
 	docker build \
-                 --build-arg SPACK_IMAGE=$(SPACK_IMAGE) \
+                 --build-arg UBUNTU_CODE=$(UBUNTU_CODE) \
                  --build-arg SPACK_VERSION=$(SPACK_VERSION) \
+                 --build-arg SPACK_IMAGE=$(SPACK_IMAGE) \
                  --build-arg TARGET=$(TARGET) \
                  --build-arg BUILD_DATE=$(BUILD_DATE) \
                  --build-arg VCS_URL=$(VCS_URL) \
