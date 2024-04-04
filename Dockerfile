@@ -60,16 +60,38 @@ RUN (echo "packages:" \
 # Find or install compilers
 #-------------------------------------------------------------------------------
 # install LLVM and CMake
-RUN apt-get update && apt-get install -y \
-        llvm-10 \
-        clang-10 \
-        libomp-10-dev \
-        cmake
+# RUN apt-get update && apt-get install -y \
+#         llvm-10 \
+#         clang-10 \
+#         libomp-10-dev \
+#         cmake
+
+# Register the ROCM package repository, and install rocm-dev package
+ARG ROCM_VERSION=5.3
+ARG AMDGPU_VERSION=5.3
+
+RUN apt-get update \
+      && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl libnuma-dev gnupg \
+      && curl -sL https://repo.radeon.com/rocm/rocm.gpg.key | apt-key add - \
+      && printf "deb [arch=amd64] https://repo.radeon.com/rocm/apt/$ROCM_VERSION/ ubuntu main" | tee /etc/apt/sources.list.d/rocm.list \
+      && printf "deb [arch=amd64] https://repo.radeon.com/amdgpu/$AMDGPU_VERSION/ubuntu focal main" | tee /etc/apt/sources.list.d/amdgpu.list \
+      && apt-get update \
+      && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      sudo \
+      libelf1 \
+      kmod \
+      file \
+      python3 \
+      python3-pip \
+      rocm-dev \
+      build-essential && \
+      apt-get clean
 
 # find external packages
 RUN spack external find --scope system --not-buildable \
         gcc \
         llvm \
+        hip \
         autoconf \
         automake \
         cmake \
@@ -81,6 +103,8 @@ RUN spack external find --scope system --not-buildable \
 RUN spack compiler find; \
     spack config get compilers > $CONFIG_DIR/compilers.yaml; \
     spack compiler list
+RUN spack external find --scope system --not-buildable --all
+RUN spack debug report && spack find -v && exit 1
 
 #-------------------------------------------------------------------------------
 # Install dependencies for antmoc
@@ -93,14 +117,13 @@ ARG CLANG_SPEC="clang"
 ARG MPICH_SPEC="mpich~fortran"
 ARG OPENMPI_SPEC="openmpi"
 
-RUN deps=("cmake %$GCC_SPEC" \
-    "lcov@=2.0 %$GCC_SPEC" \
-    "antmoc %$CLANG_SPEC ~mpi" \
-    "antmoc %$CLANG_SPEC +mpi ^$MPICH_SPEC" \
-    "antmoc %$GCC_SPEC ~mpi" \
-    "antmoc %$GCC_SPEC +mpi ^$MPICH_SPEC" \
-    "antmoc %$GCC_SPEC +mpi ^$OPENMPI_SPEC") \
-    && for dep in "${deps[@]}"; do spack install --fail-fast -ny $dep; done
+RUN spack install --fail-fast -ny cmake %$GCC_SPEC
+RUN spack install --fail-fast -ny lcov@=2.0 %$GCC_SPEC
+RUN spack install --fail-fast -ny antmoc %$CLANG_SPEC ~mpi
+RUN spack install --fail-fast -ny antmoc %$CLANG_SPEC +mpi ^$MPICH_SPEC
+RUN spack install --fail-fast -ny antmoc %$GCC_SPEC ~mpi
+RUN spack install --fail-fast -ny antmoc %$GCC_SPEC +mpi ^$MPICH_SPEC
+RUN spack install --fail-fast -ny antmoc %$GCC_SPEC +mpi ^$OPENMPI_SPEC
 RUN spack gc -y && spack clean -a
 
 # Check spack and dependency installation
@@ -164,11 +187,11 @@ WORKDIR /home/$USER_NAME
 
 # generate a script for Spack
 RUN (echo "#!/usr/bin/env bash" \
-&&   echo "export PATH=\$PATH:/opt/rocm/bin:/opt/rocm/rocprofiler/bin:/opt/rocm/opencl/bin" \
-&&   echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/opt/rocm/lib:/opt/rocm/hip/lib:/opt/rocm/llvm/lib:/opt/rocm/opencl/lib" \
-&&   echo "export INCLUDE=\$INCLUDE:/opt/rocm/include:/opt/rocm/hip/include:/opt/rocm/llvm/include" \
-&&   echo "export C_INCLUDE_PATH=\$C_INCLUDE_PATH:/opt/rocm/include:/opt/rocm/hip/include:/opt/rocm/llvm/include" \
-&&   echo "export CPLUS_INCLUDE_PATH=\$CPLUS_INCLUDE_PATH:/opt/rocm/include:/opt/rocm/hip/include:/opt/rocm/llvm/include" \
+# &&   echo "export PATH=\$PATH:/opt/rocm/bin:/opt/rocm/rocprofiler/bin:/opt/rocm/opencl/bin" \
+# &&   echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/opt/rocm/lib:/opt/rocm/hip/lib:/opt/rocm/llvm/lib:/opt/rocm/opencl/lib" \
+# &&   echo "export INCLUDE=\$INCLUDE:/opt/rocm/include:/opt/rocm/hip/include:/opt/rocm/llvm/include" \
+# &&   echo "export C_INCLUDE_PATH=\$C_INCLUDE_PATH:/opt/rocm/include:/opt/rocm/hip/include:/opt/rocm/llvm/include" \
+# &&   echo "export CPLUS_INCLUDE_PATH=\$CPLUS_INCLUDE_PATH:/opt/rocm/include:/opt/rocm/hip/include:/opt/rocm/llvm/include" \
 &&   echo "export SPACK_ROOT=$SPACK_ROOT" \
 &&   echo ". $SPACK_ROOT/share/spack/setup-env.sh" \
 &&   echo "") > ~/setup-env.sh \
