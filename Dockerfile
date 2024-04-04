@@ -60,7 +60,7 @@ RUN set -e; \
 COPY repo/ $REPO_DIR/
 
 # hold a local package mirror as needed
-#COPY mirror/ $MIRROR_DIR/
+COPY mirror/ $MIRROR_DIR/
 
 # set the arch for packages
 ARG TARGET="x86_64"
@@ -114,9 +114,7 @@ RUN deps=(\
     "antmoc %$GCC_SPEC ~mpi" \
     "antmoc %$GCC_SPEC +mpi ^$MPICH_SPEC" \
     "antmoc %$GCC_SPEC +mpi ^$OPENMPI_SPEC") \
-    && for dep in "${deps[@]}"; do \
-        spack mirror create -D -d $MIRROR_DIR $dep && \
-        spack install --fail-fast -ny $dep; done \
+    && for dep in "${deps[@]}"; do spack install --fail-fast -ny $dep; done \
     && spack gc -y && spack clean -a \
     && spack debug report && spack find -v # Check spack and dependency installation
 
