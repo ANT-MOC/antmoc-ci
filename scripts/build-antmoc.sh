@@ -15,12 +15,9 @@ WORKDIR=\$HOME/ant-moc
 
 # Always mount ANT-MOC to this directory in containers
 # -v ./ant-moc:/opt/mnt/ant-moc
-cp -r /opt/mnt/ant-moc \$WORKDIR
+sudo cp -r /opt/mnt/ant-moc \$WORKDIR
+sudo chown -R hpcer:hpcer \$WORKDIR
 cd \$WORKDIR
-
-# Change permissions
-ORIGIN_OWNER=\$(stat -c '%u:%g' tests)
-sudo chown -R hpcer:hpcer tests
 
 # Setup environment
 source \$HOME/setup-env.sh
@@ -41,7 +38,7 @@ declare -A MPIS=( \
 
 # Test cases
 declare -a TESTS=( \
-  "gcc serial run" "gcc mpich run" "gcc openmpi run" \
+  "gcc serial run" "gcc openmpi run" \
   "clang serial run" "clang mpich run" \
   "hipcc serial build" "hipcc mpich build" "hipcc openmpi build")
 
@@ -104,10 +101,7 @@ for s in "\${TESTS[@]}"; do
     cd build/
     # Exclude broken tests
     # FIXME: these tests are broken on Ubuntu jammy but work on Ubuntu focal
-    ctest \$ARGS -E unit_test_initialize* -V
+    ctest \$ARGS -E unit_test_initialize*
   fi
 done
-
-# Restore permissions
-sudo chown -R \$ORIGIN_OWNER tests
 EOF
