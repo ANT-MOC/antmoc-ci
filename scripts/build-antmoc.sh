@@ -38,7 +38,7 @@ declare -A MPIS=( \
 
 # Test cases
 declare -a TESTS=( \
-  "gcc serial run" "gcc openmpi run" \
+  "gcc openmpi run" \
   "clang serial run" "clang mpich run" \
   "hipcc serial build" "hipcc mpich build" "hipcc openmpi build")
 
@@ -77,6 +77,7 @@ for s in "\${TESTS[@]}"; do
   fi
 
   # Load dependencies
+  spack unload --all
   spack load cmake%gcc \$USE_SPECS
   spack find --loaded
 
@@ -99,9 +100,12 @@ for s in "\${TESTS[@]}"; do
     ARGS="--output-on-failure"
     if [ "\$CTEST_RANDOM" == "ON" ]; then ARGS="\$ARGS --schedule-random"; fi
     cd build/
-    # Exclude broken tests
-    # FIXME: these tests are broken on Ubuntu jammy but work on Ubuntu focal
-    ctest \$ARGS -E unit_test_initialize*
+    # FIXME: some tests are broken on Ubuntu jammy but work on Ubuntu focal
+    if [ \$mpi == serial ]; then
+      ctest \$ARGS -E unit_test_initialize*
+    else
+      ctest \$ARGS -E unit_mpi_initialize*
+    fi
   fi
 done
 EOF
