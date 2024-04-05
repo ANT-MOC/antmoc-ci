@@ -93,7 +93,6 @@ RUN spack compiler find \
     cmake \
     gmake \
     libtool \
-    curl \
     perl
 
 #-------------------------------------------------------------------------------
