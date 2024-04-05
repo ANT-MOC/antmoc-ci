@@ -22,4 +22,4 @@ class Antmoc(BundlePackage):
     depends_on('toml11@3.6:3.7')
     depends_on('hdf5@=1.10.8~mpi', when='~mpi')
     depends_on('hdf5@=1.10.8+mpi', when='+mpi')
-    depends_on('googletest@=1.10.0 +gmock')
+    depends_on('googletest@1.10:1.12 +gmock')
