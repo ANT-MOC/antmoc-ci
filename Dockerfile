@@ -1,8 +1,8 @@
 ARG SPACK_VERSION="0.21.2"
-ARG SPACK_IMAGE="spack/ubuntu-jammy"
+ARG SPACK_IMAGE="spack/ubuntu-focal"
 FROM ${SPACK_IMAGE}:${SPACK_VERSION} AS builder
 ARG UBUNTU_CODE
-ENV UBUNTU_CODE=${UBUNTU_CODE:-"jammy"}
+ENV UBUNTU_CODE=${UBUNTU_CODE:-"focal"}
 
 LABEL maintainer="An Wang <wangan.cs@gmail.com>"
 
@@ -13,13 +13,13 @@ WORKDIR /tmp
 # Install system compilers and libraries
 #-------------------------------------------------------------------------------
 # Register the ROCM package repository, and install rocm-dev package
-ARG ROCM_VERSION=5.3
-ARG AMDGPU_VERSION=5.3
+ARG ROCM_VERSION=5.4.6
+ARG AMDGPU_VERSION=5.4.6
 
 # install LLVM and CMake for spack, and
 # install ROCm HIP, see https://github.com/ROCm/ROCm-docker/blob/master/dev/Dockerfile-ubuntu-20.04
 COPY etc/apt/ /etc/apt/
-RUN sed -i -e "s/jammy/$UBUNTU_CODE/g" /etc/apt/sources.list \
+RUN sed -i -e "s/focal/$UBUNTU_CODE/g" /etc/apt/sources.list \
       && apt-get update \
       && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl libnuma-dev gnupg \
       && curl -sL https://repo.radeon.com/rocm/rocm.gpg.key | apt-key add - \
@@ -35,7 +35,7 @@ RUN sed -i -e "s/jammy/$UBUNTU_CODE/g" /etc/apt/sources.list \
       python3-pip \
       rocm-dev \
       build-essential \
-      llvm-15 clang-15 libomp-15-dev cmake  openssh-server && \
+      llvm-12 clang-12 libomp-12-dev cmake  openssh-server && \
       apt-get clean && \
       rm -rf /var/lib/apt/lists/*
 

@@ -3,12 +3,14 @@
 #===============================================================================
 
 # Build-time arguments
-UBUNTU_CODE   ?= "jammy"
-SPACK_VERSION ?= "0.21.2"
-SPACK_IMAGE    = "spack/ubuntu-$(UBUNTU_CODE)"
+UBUNTU_CODE    ?= focal
+SPACK_VERSION  ?= 0.21.2
+SPACK_IMAGE     = spack/ubuntu-$(UBUNTU_CODE)
+ROCM_VERSION   ?= 5.4.6
+AMDGPU_VERSION ?= 5.4.6
 
 # Target
-TARGET ?= "x86_64"
+TARGET ?= x86_64
 
 # Image name
 DOCKER_IMAGE ?= antmoc/antmoc-ci
