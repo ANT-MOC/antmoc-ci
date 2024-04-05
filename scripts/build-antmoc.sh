@@ -1,12 +1,5 @@
 #!/usr/bin/env bash
 # For slim toolkit 1.40.11
-
-sudo -Hi -u root bash << EOF
-rm -f /usr/bin/clang /usr/bin/clang++
-ln -s /usr/bin/clang-14 /usr/bin/clang
-ln -s /usr/bin/clang++-14 /usr/bin/clang++
-EOF
-
 sudo -Hi -u hpcer bash << EOF
 set -e
 whoami
@@ -104,7 +97,7 @@ for s in "\${TESTS[@]}"; do
     if [ \$mpi == serial ]; then
       ctest \$ARGS -E unit_test_initialize*
     else
-      ctest \$ARGS -E unit_mpi_initialize*
+      ctest \$ARGS -E unit_mpi_test_initialize*
     fi
   fi
 done
