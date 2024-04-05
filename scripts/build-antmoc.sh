@@ -38,7 +38,7 @@ cmake -S . -B build \
   -DENABLE_MPI:BOOL=\$ENABLE_MPI \
   -DENABLE_HIP:BOOL=\$ENABLE_HIP
 
-cmake --build build -j\$(nproc) -v
+cmake --build build -j\$(nproc)
 
 ARGS="--output-on-failure"
 if [ "\$CTEST_RANDOM" == "ON" ]; then ARGS="\$ARGS --schedule-random"; fi

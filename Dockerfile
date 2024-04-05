@@ -16,7 +16,6 @@ WORKDIR /tmp
 ARG ROCM_VERSION=5.4.6
 ARG AMDGPU_VERSION=5.4.6
 
-# install LLVM and CMake for spack, and
 # install ROCm HIP, see https://github.com/ROCm/ROCm-docker/blob/master/dev/Dockerfile-ubuntu-22.04
 COPY etc/apt/ /etc/apt/
 ARG APT_PREF="Package: *\nPin: release o=repo.radeon.com\nPin-Priority: 600"
@@ -38,7 +37,7 @@ RUN sed -i -e "s/jammy/$UBUNTU_CODE/g" /etc/apt/sources.list \
       rocm-dev \
       rocthrust-dev \
       build-essential
-
+# install LLVM and CMake for spack
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
       llvm-14 \
       clang-14 \
