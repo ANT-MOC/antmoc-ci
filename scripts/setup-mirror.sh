@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 
 # Please make sure you are in the root directory of this git repo
-set -e
 MIRROR_DIR=$(pwd)/mirror
 [ -d $MIRROR_DIR ] || mkdir $MIRROR_DIR
+
+# Add a self-hosted repo
+spack repo add repo/
 
 # Copied from Dockerfile
 GCC_SPEC="gcc"
