@@ -35,7 +35,7 @@ RUN sed -i -e "s/focal/$UBUNTU_CODE/g" /etc/apt/sources.list \
       python3-pip \
       rocm-dev \
       build-essential \
-      llvm-12 clang-12 libomp-12-dev cmake  openssh-server && \
+      llvm-12 clang-12 libomp-12-dev openssh-server && \
       apt-get clean && \
       rm -rf /var/lib/apt/lists/*
 
@@ -88,11 +88,7 @@ RUN spack compiler find \
     && spack external find --scope system --not-buildable \
     gcc \
     llvm \
-    autoconf \
-    automake \
-    cmake \
-    gmake \
-    libtool \
+    curl \
     perl
 
 #-------------------------------------------------------------------------------
@@ -107,7 +103,6 @@ ARG MPICH_SPEC="mpich~fortran"
 ARG OPENMPI_SPEC="openmpi"
 
 RUN deps=(\
-    "cmake %$GCC_SPEC" \
     "lcov@=2.0 %$GCC_SPEC" \
     "antmoc %$CLANG_SPEC ~mpi" \
     "antmoc %$CLANG_SPEC +mpi ^$MPICH_SPEC" \

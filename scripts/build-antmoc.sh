@@ -27,20 +27,20 @@ USE_SPECS="antmoc %gcc ~mpi"
 spack load cmake%gcc \$USE_SPECS
 spack find --loaded
 
-#cmake -S . -B build \
-#  -DCMAKE_C_COMPILER=\$C_COMPILER \
-#  -DCMAKE_CXX_COMPILER=\$CXX_COMPILER \
-#  -DCMAKE_BUILD_TYPE=\$BUILD_TYPE \
-#  -DBUILD_SHARED_LIBS:BOOL=\$BUILD_SHARED_LIBS \
-#  -DENABLE_TESTS:BOOL=\$ENABLE_TESTS \
-#  -DENABLE_MPI:BOOL=\$ENABLE_MPI \
-#  -DENABLE_HIP:BOOL=\$ENABLE_HIP
-#
-#cmake --build build -j
-#
-#ARGS="--output-on-failure"
-#if [ "\$CTEST_RANDOM" == "ON" ]; then ARGS="\$ARGS --schedule-random"; fi
-#cd build/
-#ctest \$ARGS
+cmake -S . -B build \
+  -DCMAKE_C_COMPILER=\$C_COMPILER \
+  -DCMAKE_CXX_COMPILER=\$CXX_COMPILER \
+  -DCMAKE_BUILD_TYPE=\$BUILD_TYPE \
+  -DBUILD_SHARED_LIBS:BOOL=\$BUILD_SHARED_LIBS \
+  -DENABLE_TESTS:BOOL=\$ENABLE_TESTS \
+  -DENABLE_MPI:BOOL=\$ENABLE_MPI \
+  -DENABLE_HIP:BOOL=\$ENABLE_HIP
+
+cmake --build build -j\$(nproc) -v
+
+ARGS="--output-on-failure"
+if [ "\$CTEST_RANDOM" == "ON" ]; then ARGS="\$ARGS --schedule-random"; fi
+cd build/
+ctest \$ARGS
 
 EOF
