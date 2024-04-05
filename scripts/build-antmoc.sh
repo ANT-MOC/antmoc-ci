@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
+# For slim toolkit 1.40.11
+
+sudo -Hi -u root bash << EOF
+rm -f /usr/bin/clang /usr/bin/clang++
+ln -s /usr/bin/clang-14 /usr/bin/clang
+ln -s /usr/bin/clang++-14 /usr/bin/clang++
+EOF
+
 sudo -Hi -u hpcer bash << EOF
+# Compilers in tuple (C compiler, C++ compiler, spack spec)
 set -e
-source ~/.bashrc
 whoami
 
 # Always mount ANT-MOC to this directory in containers
@@ -9,40 +17,73 @@ whoami
 cd \$HOME/ant-moc/
 
 # Setup environment
-source ~/setup-env.sh
+source \$HOME/setup-env.sh
 spack debug report
 
-# Setup variables
-C_COMPILER="gcc"
-CXX_COMPILER="g++"
-BUILD_TYPE="Release"
-BUILD_SHARED_LIBS="ON"
-ENABLE_MPI="OFF"
-ENABLE_HIP="OFF"
-ENABLE_TESTS="ON"
-CTEST_RANDOM="ON"
-USE_SPECS="antmoc %gcc ~mpi"
+# Run tests
+declare -A CCs=(
+  ["gcc"]="gcc g++ %gcc" \
+  ["clang"]="clang clang++ %clang" \
+  ["hipcc"]="hipcc hipcc %gcc")
 
-# Build ANT-MOC
-spack load cmake%gcc \$USE_SPECS
-spack find --loaded
+# MPI specs
+declare -A MPIs=( \
+  ["serial"]="~mpi" \
+  ["mpich"]="+mpi^mpich" \
+  ["openmpi"]="+mpi^openmpi")
 
-rm -rf build/ &> /dev/null
+for cc_id in "\${!CCs[@]}"; do
+  declare -a cc=(\${CCs[\$cc_id]})
+  for mpi in "\${!MPIs[@]}"; do
+    C_COMPILER="\${cc[0]}"
+    CXX_COMPILER="\${cc[1]}"
+    USE_SPECS="antmoc \${cc[2]} \${MPIs[\$mpi]}"
+    BUILD_TYPE=Release
+    BUILD_SHARED_LIBS=ON
+    ENABLE_TESTS=ON
 
-cmake -S . -B build \
-  -DCMAKE_C_COMPILER=\$C_COMPILER \
-  -DCMAKE_CXX_COMPILER=\$CXX_COMPILER \
-  -DCMAKE_BUILD_TYPE=\$BUILD_TYPE \
-  -DBUILD_SHARED_LIBS:BOOL=\$BUILD_SHARED_LIBS \
-  -DENABLE_TESTS:BOOL=\$ENABLE_TESTS \
-  -DENABLE_MPI:BOOL=\$ENABLE_MPI \
-  -DENABLE_HIP:BOOL=\$ENABLE_HIP
+    # Enable MPI or not
+    if [ \$mpi == "serial" ]; then
+      ENABLE_MPI=OFF
+      CTEST_RANDOM=ON
+    else
+      ENABLE_MPI=ON
+      CTEST_RANDOM=OFF
+    fi
 
-cmake --build build -j\$(nproc)
+    # Enable HIP or not
+    if [ \${cc[0]} == "hipcc" ]; then
+      ENABLE_HIP=ON
+    else
+      ENABLE_HIP=OFF
+    fi
 
-ARGS="--output-on-failure"
-if [ "\$CTEST_RANDOM" == "ON" ]; then ARGS="\$ARGS --schedule-random"; fi
-cd build/
-ctest \$ARGS
+    # Load dependencies
+    spack load cmake%gcc \$USE_SPECS
+    spack find --loaded
 
+    rm -rf build/ &> /dev/null
+
+    # Build ANT-MOC
+    cmake -S . -B build \
+      -DCMAKE_C_COMPILER=\$C_COMPILER \
+      -DCMAKE_CXX_COMPILER=\$CXX_COMPILER \
+      -DCMAKE_BUILD_TYPE=\$BUILD_TYPE \
+      -DBUILD_SHARED_LIBS:BOOL=\$BUILD_SHARED_LIBS \
+      -DENABLE_TESTS:BOOL=\$ENABLE_TESTS \
+      -DENABLE_MPI:BOOL=\$ENABLE_MPI \
+      -DENABLE_HIP:BOOL=\$ENABLE_HIP
+
+    cmake --build build -j\$(nproc)
+
+    if [ ! \${cc[0]} == "hipcc" ]; then
+      ARGS="--output-on-failure"
+      if [ "\$CTEST_RANDOM" == "ON" ]; then ARGS="\$ARGS --schedule-random"; fi
+      cd build/
+      # Exclude broken tests
+      # FIXME: these tests are broken on Ubuntu jammy but work on Ubuntu focal
+      ctest \$ARGS -E unit_test_initialize*
+    fi
+  done
+done
 EOF

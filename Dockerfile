@@ -45,7 +45,10 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
       cmake \
       openssh-server \
       && apt-get clean \
-      && rm -rf /var/lib/apt/lists/*
+      && rm -rf /var/lib/apt/lists/* \
+      && rm -f /usr/bin/clang /usr/bin/clang++ &> /dev/null \
+      && ln -s /usr/bin/clang-14 /usr/bin/clang \
+      && ln -s /usr/bin/clang++-14 /usr/bin/clang++
 
 #-------------------------------------------------------------------------------
 # Set up spack
