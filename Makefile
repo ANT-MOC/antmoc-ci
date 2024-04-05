@@ -3,7 +3,7 @@
 #===============================================================================
 
 # Build-time arguments
-UBUNTU_CODE    ?= focal
+UBUNTU_CODE    ?= jammy
 SPACK_VERSION  ?= 0.21.2
 SPACK_IMAGE     = spack/ubuntu-$(UBUNTU_CODE)
 ROCM_VERSION   ?= 5.4.6

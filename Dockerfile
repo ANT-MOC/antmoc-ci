@@ -1,8 +1,8 @@
 ARG SPACK_VERSION="0.21.2"
-ARG SPACK_IMAGE="spack/ubuntu-focal"
+ARG SPACK_IMAGE="spack/ubuntu-jammy"
 FROM ${SPACK_IMAGE}:${SPACK_VERSION} AS builder
 ARG UBUNTU_CODE
-ENV UBUNTU_CODE=${UBUNTU_CODE:-"focal"}
+ENV UBUNTU_CODE=${UBUNTU_CODE:-"jammy"}
 
 LABEL maintainer="An Wang <wangan.cs@gmail.com>"
 
@@ -17,13 +17,15 @@ ARG ROCM_VERSION=5.4.6
 ARG AMDGPU_VERSION=5.4.6
 
 # install LLVM and CMake for spack, and
-# install ROCm HIP, see https://github.com/ROCm/ROCm-docker/blob/master/dev/Dockerfile-ubuntu-20.04
+# install ROCm HIP, see https://github.com/ROCm/ROCm-docker/blob/master/dev/Dockerfile-ubuntu-22.04
 COPY etc/apt/ /etc/apt/
-RUN sed -i -e "s/focal/$UBUNTU_CODE/g" /etc/apt/sources.list \
+ARG APT_PREF="Package: *\nPin: release o=repo.radeon.com\nPin-Priority: 600"
+RUN sed -i -e "s/jammy/$UBUNTU_CODE/g" /etc/apt/sources.list \
+      && echo -e "$APT_PREF" | tee /etc/apt/preferences.d/rocm-pin-600 \
       && apt-get update \
       && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl libnuma-dev gnupg \
       && curl -sL https://repo.radeon.com/rocm/rocm.gpg.key | apt-key add - \
-      && printf "deb [arch=amd64] https://repo.radeon.com/rocm/apt/$ROCM_VERSION/ ubuntu main" | tee /etc/apt/sources.list.d/rocm.list \
+      && printf "deb [arch=amd64] https://repo.radeon.com/rocm/apt/$ROCM_VERSION/ $UBUNTU_CODE main" | tee /etc/apt/sources.list.d/rocm.list \
       && printf "deb [arch=amd64] https://repo.radeon.com/amdgpu/$AMDGPU_VERSION/ubuntu $UBUNTU_CODE main" | tee /etc/apt/sources.list.d/amdgpu.list \
       && apt-get update \
       && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -35,7 +37,7 @@ RUN sed -i -e "s/focal/$UBUNTU_CODE/g" /etc/apt/sources.list \
       python3-pip \
       rocm-dev \
       build-essential \
-      llvm-12 clang-12 libomp-12-dev cmake openssh-server && \
+      llvm-14 clang-14 libomp-14-dev cmake openssh-server && \
       apt-get clean && \
       rm -rf /var/lib/apt/lists/*
 
