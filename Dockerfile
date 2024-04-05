@@ -103,7 +103,6 @@ ARG MPICH_SPEC="mpich~fortran"
 ARG OPENMPI_SPEC="openmpi"
 
 RUN deps=(\
-    "cmake@3.24 %GCC_SPEC" \
     "lcov@=2.0 %$GCC_SPEC" \
     "antmoc %$CLANG_SPEC ~mpi" \
     "antmoc %$CLANG_SPEC +mpi ^$MPICH_SPEC" \
