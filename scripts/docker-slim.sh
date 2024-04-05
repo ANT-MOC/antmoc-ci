@@ -1,8 +1,7 @@
 IMAGE=antmoc/antmoc-ci:0.1.16-alpha
 
 slim build --target $IMAGE \
-  --mount $(pwd)/ant-moc:/home/hpcer/ant-moc \
-  --mount $(pwd)/scripts:/home/hpcer/scripts \
+  --mount $(pwd)/ant-moc:/opt/mnt/ant-moc \
   --http-probe=false \
   --show-clogs \
   --include-path /opt/spack \
