@@ -20,6 +20,6 @@ class Antmoc(BundlePackage):
     depends_on('fmt@6.0.0:8.0.0+shared')
     depends_on('tinyxml2@7.0:9.0+shared')
     depends_on('toml11@3.6:3.7')
-    depends_on('hdf5@=1.10.8~mpi', when='~mpi')
-    depends_on('hdf5@=1.10.8+mpi', when='+mpi')
+    depends_on('hdf5@=1.10.11~mpi', when='~mpi')
+    depends_on('hdf5@=1.10.11+mpi', when='+mpi')
     depends_on('googletest@1.10:1.12 +gmock')
