@@ -27,6 +27,8 @@ USE_SPECS="antmoc %gcc ~mpi"
 spack load cmake%gcc \$USE_SPECS
 spack find --loaded
 
+rm -rf build/ &> /dev/null
+
 cmake -S . -B build \
   -DCMAKE_C_COMPILER=\$C_COMPILER \
   -DCMAKE_CXX_COMPILER=\$CXX_COMPILER \
