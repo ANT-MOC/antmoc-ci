@@ -31,9 +31,9 @@ declare -A MPIS=( \
 
 # Test cases
 declare -a TESTS=( \
-  "gcc openmpi run" \
+  "gcc serial run" "gcc mpich run" "gcc openmpi run" \
   "clang serial run" "clang mpich run" \
-  "hipcc serial build" "hipcc mpich build" "hipcc openmpi build")
+  "hipcc serial build" "hipcc mpich build" "hipcc openmpi build" )
 
 # Run tests
 for s in "\${TESTS[@]}"; do

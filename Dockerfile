@@ -115,8 +115,8 @@ ARG GCC_SPEC="gcc"
 ARG CLANG_SPEC="clang"
 
 # MPI specs
-ARG MPICH_SPEC="mpich@=3.4.3"
-ARG OPENMPI_SPEC="openmpi@=4.0.7"
+ARG MPICH_SPEC="mpich@=3.3.2~fortran"
+ARG OPENMPI_SPEC="openmpi@=4.0.6"
 
 RUN set -e; \
     deps=(\
