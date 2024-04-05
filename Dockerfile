@@ -36,6 +36,7 @@ RUN sed -i -e "s/jammy/$UBUNTU_CODE/g" /etc/apt/sources.list \
       python3 \
       python3-pip \
       rocm-dev \
+      rocthrust-dev \
       build-essential \
       llvm-14 clang-14 libomp-14-dev cmake openssh-server && \
       apt-get clean && \
