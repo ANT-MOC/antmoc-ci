@@ -37,18 +37,18 @@ RUN sed -i -e "s/jammy/$UBUNTU_CODE/g" /etc/apt/sources.list \
       rocm-dev \
       rocthrust-dev \
       build-essential
-# install LLVM and CMake for spack
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-      llvm-14 \
-      clang-14 \
-      libomp-14-dev \
-      cmake \
-      openssh-server \
-      && apt-get clean \
-      && rm -rf /var/lib/apt/lists/* \
-      && rm -f /usr/bin/clang /usr/bin/clang++ &> /dev/null \
-      && ln -s /usr/bin/clang-14 /usr/bin/clang \
-      && ln -s /usr/bin/clang++-14 /usr/bin/clang++
+# set up AMD clang and install CMake for spack
+RUN <<EOF bash
+set -ex
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    cmake \
+    openssh-server
+apt-get clean
+rm -rf /var/lib/apt/lists/*
+rm -f /usr/bin/clang /usr/bin/clang++ &> /dev/null
+ln -s /opt/rocm-${ROCM_VERSION}/llvm/bin/clang /usr/bin/clang
+ln -s /opt/rocm-${ROCM_VERSION}/llvm/bin/clang++ /usr/bin/clang++
+EOF
 
 #-------------------------------------------------------------------------------
 # Set up spack
@@ -61,11 +61,13 @@ ENV MIRROR_DIR=/opt/mirror
 ENV REPO_DIR=/opt/repo
 
 # create directories for Spack
-RUN set -e; \
-    mkdir -p $CONFIG_DIR; \
-    mkdir -p $INSTALL_DIR; \
-    mkdir -p $REPO_DIR; \
-    mkdir -p $MIRROR_DIR
+RUN <<EOF bash
+set -ex
+mkdir -p $CONFIG_DIR
+mkdir -p $INSTALL_DIR
+mkdir -p $REPO_DIR
+mkdir -p $MIRROR_DIR
+EOF
 
 # copy a self-hosted spack repo to the image
 COPY repo/ $REPO_DIR/
@@ -77,28 +79,57 @@ COPY mirror/ $MIRROR_DIR/
 ARG TARGET="x86_64"
 
 # generate configurations
-RUN (echo "config:" \
-    &&   echo "  install_tree:" \
-    &&   echo "    root: $INSTALL_DIR" \
-    &&   echo "  connect_timeout: 600") > $CONFIG_DIR/config.yaml \
-    && (echo "mirrors:" \
-        &&   echo "  local: file://$MIRROR_DIR") > $CONFIG_DIR/mirrors.yaml \
-    && (echo "repos:" \
-        &&   echo "  - $REPO_DIR") > $CONFIG_DIR/repos.yaml \
-    && (echo "packages:" \
-        &&   echo "  all:" \
-        &&   echo "    target: [$TARGET]") > $CONFIG_DIR/packages.yaml
+COPY <<EOF $CONFIG_DIR/config.yaml
+config:
+  install_tree:
+    root: $INSTALL_DIR
+  connect_timeout: 600
+EOF
+
+COPY <<EOF $CONFIG_DIR/packages.yaml
+packages:
+  all:
+    target: [$TARGET]
+EOF
+
+RUN <<EOF bash
+set -ex
+spack mirror add --scope system local $MIRROR_DIR
+spack repo add --scope system $REPO_DIR
+EOF
+
 
 #-------------------------------------------------------------------------------
 # Find system compilers
 #-------------------------------------------------------------------------------
-# find external packages and system compilers
-RUN spack compiler find \
-    && spack config get compilers > $CONFIG_DIR/compilers.yaml \
-    && spack compiler list \
-    && spack external find --scope system --not-buildable \
-    gcc \
-    llvm \
+# manually add AMD clang to compilers, 'CLANG_VERSION' is a placeholder
+COPY <<EOF $CONFIG_DIR/compilers.yaml
+compilers:
+- compiler:
+    spec: clang@=CLANG_VERSION
+    paths:
+      cc: /usr/bin/clang
+      cxx: /usr/bin/clang++
+      f77: /usr/bin/gfortran
+      fc: /usr/bin/gfortran
+    flags: {}
+    operating_system: ubuntu22.04
+    target: x86_64
+    modules: []
+    environment: {}
+    extra_rpaths: []
+EOF
+
+# find gcc and external packages
+RUN <<EOF bash
+set -ex
+# substitute clang version with the correct one
+sed -i -e "s/CLANG_VERSION/$(clang --version | grep -Po '(?<=version )[^ ]+')/g" $CONFIG_DIR/compilers.yaml
+# find gcc
+spack compiler find --scope system
+spack compiler list
+# find external packages
+spack external find --scope system --not-buildable \
     autoconf \
     automake \
     cmake \
@@ -107,29 +138,36 @@ RUN spack compiler find \
     openssh \
     perl \
     python
+EOF
+
 
 #-------------------------------------------------------------------------------
 # Install dependencies for antmoc
 #-------------------------------------------------------------------------------
 # MPI specs
-ARG MPICH_SPEC="mpich@=3.4.3~fortran"
-ARG OPENMPI_SPEC="openmpi@4.1"
+ARG MPICH_SPEC="mpich@=4.1.2~fortran"
+ARG OPENMPI_SPEC="openmpi@=4.1.6"
 
 # To avoid the default --reuse option of spack 0.21,
 # add %clang and %gcc for every MPI spec.
-RUN set -e; \
-    deps=(\
-        "cmake %gcc" \
-        "lcov@=2.0 %gcc" \
-        "antmoc %clang ~mpi" \
-        "antmoc %clang +mpi ^$MPICH_SPEC %clang" \
-        "antmoc %gcc ~mpi" \
-        "antmoc %gcc +mpi ^$MPICH_SPEC %gcc" \
-        "antmoc %gcc +mpi ^$OPENMPI_SPEC %gcc") \
-    && for dep in "${deps[@]}"; do spack install -j $(nproc) --fail-fast -ny $dep; done \
-    && spack gc -y && spack clean -a \
-    && spack debug report && spack find -v # Check spack and dependency installation
-
+RUN <<EOF bash
+set -ex
+deps=(\
+    "cmake %gcc" \
+    "lcov@=2.0 %gcc" \
+    "antmoc %clang ~mpi" \
+    "antmoc %clang +mpi ^$MPICH_SPEC %clang" \
+    "antmoc %gcc ~mpi" \
+    "antmoc %gcc +mpi ^$MPICH_SPEC %gcc" \
+    "antmoc %gcc +mpi ^$OPENMPI_SPEC %gcc")
+for dep in "\${deps[@]}";
+do
+    spack install -j \$(nproc) --fail-fast -ny \$dep
+done
+spack gc -y && spack clean -a
+spack debug report
+spack find -v # Check spack and dependency installation
+EOF
 
 #-------------------------------------------------------------------------------
 # Add a user
@@ -138,12 +176,13 @@ RUN set -e; \
 ARG USER_NAME=hpcer
 
 # create the first user
-RUN set -e; \
-    \
-    if ! id -u $USER_NAME &> /dev/null; then \
-        useradd -m $USER_NAME; \
-        echo "$USER_NAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers; \
-    fi
+RUN <<EOF bash
+set -ex
+if ! id -u $USER_NAME &> /dev/null; then
+    useradd -m $USER_NAME
+    echo "$USER_NAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+fi
+EOF
 
 # transfer control to the default user
 USER $USER_NAME
