@@ -1,6 +1,6 @@
 # See https://github.com/slimtoolkit/slim
 
-IMAGE=antmoc/antmoc-ci:0.1.16-alpha
+IMAGE={1:-"antmoc/antmoc-ci:0.1.16-alpha"}
 
 slim build --target $IMAGE \
   --mount $(pwd)/ant-moc:/opt/mnt/ant-moc \
