@@ -4,7 +4,7 @@ sudo -Hi -u hpcer bash << EOF
 set -e
 whoami
 
-WORKDIR=\$HOME/ant-moc
+WORKDIR=/tmp/ant-moc
 
 # Always mount ANT-MOC to this directory in containers
 # -v ./ant-moc:/opt/mnt/ant-moc
@@ -13,7 +13,7 @@ sudo chown -R hpcer:hpcer \$WORKDIR
 cd \$WORKDIR
 
 # Setup environment
-source \$HOME/setup-env.sh
+source \$HOME/.bashrc
 spack debug report
 spack find -v antmoc
 
