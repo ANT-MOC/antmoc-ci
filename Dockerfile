@@ -163,10 +163,10 @@ RUN (echo "#!/usr/bin/env bash" \
 &&   chmod u+x ~/setup-env.sh
 
 #-------------------------------------------------------------------------------
-# Reset the entrypoint, add CMD
+# Reset the entrypoint and CMD
 #-------------------------------------------------------------------------------
 ENTRYPOINT ["/bin/bash"]
-CMD ["interactive-shell"]
+CMD []
 
 #-----------------------------------------------------------------------
 # Build-time metadata as defined at http://label-schema.org
