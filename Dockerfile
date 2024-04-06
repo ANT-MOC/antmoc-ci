@@ -113,8 +113,8 @@ compilers:
       f77: /usr/bin/gfortran
       fc: /usr/bin/gfortran
     flags: {}
-    operating_system: ubuntu22.04
-    target: x86_64
+    operating_system: UBUNTU_VERSION
+    target: $TARGET
     modules: []
     environment: {}
     extra_rpaths: []
@@ -123,8 +123,10 @@ EOF
 # find gcc and external packages
 RUN <<EOF bash
 set -ex
-# substitute clang version with the correct one
+# substitute clang version and ubuntu version with the correct ones
 sed -i -e "s/CLANG_VERSION/$(clang --version | grep -Po '(?<=version )[^ ]+')/g" $CONFIG_DIR/compilers.yaml
+sed -i -e "s/UBUNTU_VERSION/$(spack debug report | grep -Po '(?<=linux-)[^-]+')/g" $CONFIG_DIR/compilers.yaml
+
 # find gcc
 spack compiler find --scope system
 spack compiler list

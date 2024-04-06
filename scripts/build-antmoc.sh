@@ -51,7 +51,13 @@ for s in "\${TESTS[@]}"; do
   USE_SPECS="antmoc \${cc[2]} \${MPIS[\$mpi]}"
   BUILD_TYPE=Release
   BUILD_SHARED_LIBS=ON
-  ENABLE_TESTS=ON
+
+  # Enable tests
+  if [ \$stage == "run" ]; then
+    ENABLE_TESTS=ON
+  else
+    ENABLE_TESTS=OFF
+  fi
 
   # Enable MPI or not
   if [ \$mpi == "serial" ]; then
