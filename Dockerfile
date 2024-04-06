@@ -115,7 +115,7 @@ ARG GCC_SPEC="gcc"
 ARG CLANG_SPEC="clang"
 
 # MPI specs
-ARG MPICH_SPEC="mpich@=3.4.3"
+ARG MPICH_SPEC="mpich@=3.4.3~fortran"
 ARG OPENMPI_SPEC="openmpi@=4.0.7"
 
 RUN set -e; \
@@ -151,21 +151,19 @@ USER $USER_NAME
 WORKDIR /home/$USER_NAME
 
 # generate a script for Spack
-RUN (echo "#!/usr/bin/env bash" \
+RUN (echo "export SPACK_ROOT=$SPACK_ROOT" \
+&&   echo ". $SPACK_ROOT/share/spack/setup-env.sh" \
 # &&   echo "export PATH=\$PATH:/opt/rocm/bin:/opt/rocm/rocprofiler/bin:/opt/rocm/opencl/bin" \
 # &&   echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/opt/rocm/lib:/opt/rocm/hip/lib:/opt/rocm/llvm/lib:/opt/rocm/opencl/lib" \
 # &&   echo "export INCLUDE=\$INCLUDE:/opt/rocm/include:/opt/rocm/hip/include:/opt/rocm/llvm/include" \
 # &&   echo "export C_INCLUDE_PATH=\$C_INCLUDE_PATH:/opt/rocm/include:/opt/rocm/hip/include:/opt/rocm/llvm/include" \
 # &&   echo "export CPLUS_INCLUDE_PATH=\$CPLUS_INCLUDE_PATH:/opt/rocm/include:/opt/rocm/hip/include:/opt/rocm/llvm/include" \
-&&   echo "export SPACK_ROOT=$SPACK_ROOT" \
-&&   echo ". $SPACK_ROOT/share/spack/setup-env.sh" \
-&&   echo "") > ~/setup-env.sh \
-&&   chmod u+x ~/setup-env.sh
+&&   echo "") > ~/.bashrc
 
 #-------------------------------------------------------------------------------
 # Reset the entrypoint and CMD
 #-------------------------------------------------------------------------------
-ENTRYPOINT ["/bin/bash"]
+ENTRYPOINT ["/bin/bash", "-l"]
 CMD []
 
 #-----------------------------------------------------------------------
