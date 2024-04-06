@@ -104,6 +104,7 @@ RUN spack compiler find \
     cmake \
     gmake \
     libtool \
+    openssh \
     perl \
     python
 
@@ -112,8 +113,10 @@ RUN spack compiler find \
 #-------------------------------------------------------------------------------
 # MPI specs
 ARG MPICH_SPEC="mpich@=3.4.3~fortran"
-ARG OPENMPI_SPEC="openmpi@=4.0.7"
+ARG OPENMPI_SPEC="openmpi@4.1"
 
+# To avoid the default --reuse option of spack 0.21,
+# add %clang and %gcc for every MPI spec.
 RUN set -e; \
     deps=(\
         "cmake %gcc" \
@@ -121,8 +124,8 @@ RUN set -e; \
         "antmoc %clang ~mpi" \
         "antmoc %clang +mpi ^$MPICH_SPEC %clang" \
         "antmoc %gcc ~mpi" \
-        "antmoc %gcc +mpi ^$MPICH_SPEC" \
-        "antmoc %gcc +mpi ^$OPENMPI_SPEC") \
+        "antmoc %gcc +mpi ^$MPICH_SPEC %gcc" \
+        "antmoc %gcc +mpi ^$OPENMPI_SPEC %gcc") \
     && for dep in "${deps[@]}"; do spack install -j $(nproc) --fail-fast -ny $dep; done \
     && spack gc -y && spack clean -a \
     && spack debug report && spack find -v # Check spack and dependency installation
