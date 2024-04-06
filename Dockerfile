@@ -110,23 +110,19 @@ RUN spack compiler find \
 #-------------------------------------------------------------------------------
 # Install dependencies for antmoc
 #-------------------------------------------------------------------------------
-# Compiler specs
-ARG GCC_SPEC="gcc"
-ARG CLANG_SPEC="clang"
-
 # MPI specs
 ARG MPICH_SPEC="mpich@=3.4.3~fortran"
 ARG OPENMPI_SPEC="openmpi@=4.0.7"
 
 RUN set -e; \
     deps=(\
-        "cmake %$GCC_SPEC" \
-        "lcov@=2.0 %$GCC_SPEC" \
-        "antmoc %$CLANG_SPEC ~mpi" \
-        "antmoc %$CLANG_SPEC +mpi ^$MPICH_SPEC" \
-        "antmoc %$GCC_SPEC ~mpi" \
-        "antmoc %$GCC_SPEC +mpi ^$MPICH_SPEC" \
-        "antmoc %$GCC_SPEC +mpi ^$OPENMPI_SPEC") \
+        "cmake %gcc" \
+        "lcov@=2.0 %gcc" \
+        "antmoc %clang ~mpi" \
+        "antmoc %clang +mpi ^$MPICH_SPEC %clang" \
+        "antmoc %gcc ~mpi" \
+        "antmoc %gcc +mpi ^$MPICH_SPEC" \
+        "antmoc %gcc +mpi ^$OPENMPI_SPEC") \
     && for dep in "${deps[@]}"; do spack install -j $(nproc) --fail-fast -ny $dep; done \
     && spack gc -y && spack clean -a \
     && spack debug report && spack find -v # Check spack and dependency installation
