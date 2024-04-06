@@ -15,7 +15,7 @@ cd \$WORKDIR
 # Setup environment
 source \$HOME/setup-env.sh
 spack debug report
-spack find -v
+spack find -v antmoc
 
 # Compilers in tuple (C compiler, C++ compiler, spack spec)
 declare -A COMPILERS=( \
@@ -87,18 +87,16 @@ for s in "\${TESTS[@]}"; do
     -DENABLE_HIP:BOOL=\$ENABLE_HIP
 
   echo -e "Building ANT-MOC..."
-  cmake --build build -j\$(nproc) &> /dev/null
+  cmake --build build -j\$(nproc)
 
   if [ \$stage == "run" ]; then
     ARGS="--output-on-failure"
     if [ "\$CTEST_RANDOM" == "ON" ]; then ARGS="\$ARGS --schedule-random"; fi
     cd build/
-    # FIXME: some tests are broken on Ubuntu jammy but work on Ubuntu focal
-    if [ \$mpi == serial ]; then
-      ctest \$ARGS -E unit_test_initialize*
-    else
-      ctest \$ARGS -E unit_mpi_test_initialize*
-    fi
+    ctest \$ARGS
   fi
 done
+
+cd
+rm -rf \$WORKDIR
 EOF
