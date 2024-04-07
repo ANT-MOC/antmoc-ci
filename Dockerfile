@@ -17,29 +17,36 @@ ARG ROCM_VERSION=5.4.6
 ARG AMDGPU_VERSION=5.4.6
 
 # install ROCm HIP, see https://github.com/ROCm/ROCm-docker/blob/master/dev/Dockerfile-ubuntu-22.04
-COPY etc/apt/ /etc/apt/
+ADD etc/apt/ /etc/apt/
 ARG APT_PREF="Package: *\nPin: release o=repo.radeon.com\nPin-Priority: 600"
-RUN sed -i -e "s/jammy/$UBUNTU_CODE/g" /etc/apt/sources.list \
-      && echo -e "$APT_PREF" | tee /etc/apt/preferences.d/rocm-pin-600 \
-      && apt-get update \
-      && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl libnuma-dev gnupg \
-      && curl -sL https://repo.radeon.com/rocm/rocm.gpg.key | apt-key add - \
-      && printf "deb [arch=amd64] https://repo.radeon.com/rocm/apt/$ROCM_VERSION/ $UBUNTU_CODE main" | tee /etc/apt/sources.list.d/rocm.list \
-      && printf "deb [arch=amd64] https://repo.radeon.com/amdgpu/$AMDGPU_VERSION/ubuntu $UBUNTU_CODE main" | tee /etc/apt/sources.list.d/amdgpu.list \
-      && apt-get update \
-      && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-      sudo \
-      libelf1 \
-      kmod \
-      file \
-      python3 \
-      python3-pip \
-      rocm-dev \
-      rocthrust-dev \
-      build-essential
-# set up AMD clang and install CMake for spack
-RUN <<EOF bash
-set -ex
+RUN <<EOF bash # install cmake, hipcc (AMD clang), openssh, etc.
+set -e
+
+# add apt sources
+sed -i -e "s/jammy/$UBUNTU_CODE/g" /etc/apt/sources.list
+echo -e "$APT_PREF" | tee /etc/apt/preferences.d/rocm-pin-600
+
+# install ROCm GPG keys, add ROCm repos
+apt-get update
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates curl libnuma-dev gnupg
+curl -sL https://repo.radeon.com/rocm/rocm.gpg.key | apt-key add -
+printf "deb [arch=amd64] https://repo.radeon.com/rocm/apt/$ROCM_VERSION/ $UBUNTU_CODE main" | tee /etc/apt/sources.list.d/rocm.list
+printf "deb [arch=amd64] https://repo.radeon.com/amdgpu/$AMDGPU_VERSION/ubuntu $UBUNTU_CODE main" | tee /etc/apt/sources.list.d/amdgpu.list
+
+# install rocm-dev
+apt-get update
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    sudo \
+    libelf1 \
+    kmod \
+    file \
+    python3 \
+    python3-pip \
+    rocm-dev \
+    rocthrust-dev \
+    build-essential
+
+# install CMake and set up AMD clang
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     cmake \
     openssh-server
@@ -60,9 +67,8 @@ ENV INSTALL_DIR=/opt/software
 ENV MIRROR_DIR=/opt/mirror
 ENV REPO_DIR=/opt/repo
 
-# create directories for Spack
-RUN <<EOF bash
-set -ex
+RUN <<EOF bash # create directories for spack
+set -e
 mkdir -p $CONFIG_DIR
 mkdir -p $INSTALL_DIR
 mkdir -p $REPO_DIR
@@ -70,40 +76,42 @@ mkdir -p $MIRROR_DIR
 EOF
 
 # copy a self-hosted spack repo to the image
-COPY repo/ $REPO_DIR/
+ADD repo/ $REPO_DIR/
 
 # hold a local package mirror as needed
-COPY mirror/ $MIRROR_DIR/
+ADD mirror/ $MIRROR_DIR/
 
 # set the arch for packages
 ARG TARGET="x86_64"
 
-# generate configurations
-COPY <<EOF $CONFIG_DIR/config.yaml
+RUN <<EOF bash # generate a spack configuration
+set -e
+
+cat << EOF1 > $CONFIG_DIR/config.yaml
 config:
   install_tree:
     root: $INSTALL_DIR
   connect_timeout: 600
-EOF
+EOF1
 
-COPY <<EOF $CONFIG_DIR/packages.yaml
+cat << EOF2 > $CONFIG_DIR/packages.yaml
 packages:
   all:
     target: [$TARGET]
-EOF
+EOF2
 
-RUN <<EOF bash
-set -ex
 spack mirror add --scope system local $MIRROR_DIR
 spack repo add --scope system $REPO_DIR
 EOF
 
-
 #-------------------------------------------------------------------------------
 # Find system compilers
 #-------------------------------------------------------------------------------
+RUN <<EOF bash # set up compilers and external packages for spack
+set -e
+
 # manually add AMD clang to compilers, 'CLANG_VERSION' is a placeholder
-COPY <<EOF $CONFIG_DIR/compilers.yaml
+cat << EOF1 > $CONFIG_DIR/compilers.yaml
 compilers:
 - compiler:
     spec: clang@=CLANG_VERSION
@@ -118,20 +126,15 @@ compilers:
     modules: []
     environment: {}
     extra_rpaths: []
-EOF
+EOF1
 
-# find gcc and external packages
-RUN <<EOF bash
-set -ex
 # substitute clang version and ubuntu version with the correct ones
 sed -i -e "s/CLANG_VERSION/$(clang --version | grep -Po '(?<=version )[^ ]+')/g" $CONFIG_DIR/compilers.yaml
 sed -i -e "s/UBUNTU_VERSION/$(spack debug report | grep -Po '(?<=linux-)[^-]+')/g" $CONFIG_DIR/compilers.yaml
 
-# find gcc
-spack compiler find --scope system
-spack config get compilers > $CONFIG_DIR/compilers.yaml
 # find external packages
 spack external find --scope system --not-buildable \
+    gcc \
     autoconf \
     automake \
     cmake \
@@ -152,8 +155,8 @@ ARG OPENMPI_SPEC="openmpi@=4.1.6"
 
 # To avoid the default --reuse option of spack 0.21,
 # add %clang and %gcc for every MPI spec.
-RUN <<EOF bash
-set -ex
+RUN <<EOF bash # install ANT-MOC dependencies
+set -e
 deps=(\
     "cmake %gcc" \
     "lcov@=2.0 %gcc" \
@@ -176,28 +179,28 @@ EOF
 #-------------------------------------------------------------------------------
 # set user name
 ARG USER_NAME=hpcer
+ENV USER_NAME=$USER_NAME
+ENV USER_HOME=/home/$USER_NAME
 
-# create the first user
-RUN <<EOF bash
-set -ex
+RUN <<EOF bash # add a user, transfer .spack from root to the new user
+set -e
 if ! id -u $USER_NAME &> /dev/null; then
-    useradd -m $USER_NAME
+    useradd -m $USER_NAME -d $USER_HOME
     echo "$USER_NAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 fi
+# copy spack configuration of the root to the new user's home
+cp -r ~/.spack $USER_HOME/
+# change permissions (could be time-consuming)
+chown -R $USER_NAME: $USER_HOME/.spack $CONFIG_DIR $REPO_DIR $MIRROR_DIR $INSTALL_DIR
 EOF
 
 # transfer control to the default user
 USER $USER_NAME
-WORKDIR /home/$USER_NAME
+WORKDIR $USER_HOME
 
 # generate a script for Spack
 RUN (echo "export SPACK_ROOT=$SPACK_ROOT" \
 &&   echo ". $SPACK_ROOT/share/spack/setup-env.sh" \
-# &&   echo "export PATH=\$PATH:/opt/rocm/bin:/opt/rocm/rocprofiler/bin:/opt/rocm/opencl/bin" \
-# &&   echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/opt/rocm/lib:/opt/rocm/hip/lib:/opt/rocm/llvm/lib:/opt/rocm/opencl/lib" \
-# &&   echo "export INCLUDE=\$INCLUDE:/opt/rocm/include:/opt/rocm/hip/include:/opt/rocm/llvm/include" \
-# &&   echo "export C_INCLUDE_PATH=\$C_INCLUDE_PATH:/opt/rocm/include:/opt/rocm/hip/include:/opt/rocm/llvm/include" \
-# &&   echo "export CPLUS_INCLUDE_PATH=\$CPLUS_INCLUDE_PATH:/opt/rocm/include:/opt/rocm/hip/include:/opt/rocm/llvm/include" \
 &&   echo "") >> ~/.bashrc
 
 #-------------------------------------------------------------------------------
