@@ -129,7 +129,7 @@ sed -i -e "s/UBUNTU_VERSION/$(spack debug report | grep -Po '(?<=linux-)[^-]+')/
 
 # find gcc
 spack compiler find --scope system
-spack compiler list
+spack config get compilers > $CONFIG_DIR/compilers.yaml
 # find external packages
 spack external find --scope system --not-buildable \
     autoconf \
@@ -198,7 +198,7 @@ RUN (echo "export SPACK_ROOT=$SPACK_ROOT" \
 # &&   echo "export INCLUDE=\$INCLUDE:/opt/rocm/include:/opt/rocm/hip/include:/opt/rocm/llvm/include" \
 # &&   echo "export C_INCLUDE_PATH=\$C_INCLUDE_PATH:/opt/rocm/include:/opt/rocm/hip/include:/opt/rocm/llvm/include" \
 # &&   echo "export CPLUS_INCLUDE_PATH=\$CPLUS_INCLUDE_PATH:/opt/rocm/include:/opt/rocm/hip/include:/opt/rocm/llvm/include" \
-&&   echo "") > ~/.bashrc
+&&   echo "") >> ~/.bashrc
 
 #-------------------------------------------------------------------------------
 # Reset the entrypoint and CMD
