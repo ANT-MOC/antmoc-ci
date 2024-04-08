@@ -5,11 +5,12 @@ set -e
 whoami
 
 WORKDIR=/tmp/ant-moc
+[ -d \$WORKDIR ] && rm -rf \$WORKDIR
+mkdir \$WORKDIR
 
 # Always mount ANT-MOC to this directory in containers
 # -v ./ant-moc:/opt/mnt/ant-moc
-sudo cp -r /opt/mnt/ant-moc \$WORKDIR
-sudo chown -R hpcer:hpcer \$WORKDIR
+cp -r /opt/mnt/ant-moc/. \$WORKDIR/
 cd \$WORKDIR
 
 # Setup environment
@@ -51,6 +52,7 @@ for s in "\${TESTS[@]}"; do
   USE_SPECS="antmoc \${cc[2]} \${MPIS[\$mpi]}"
   BUILD_TYPE=Release
   BUILD_SHARED_LIBS=ON
+  ENABLE_ALL_WARNINGS=OFF
 
   # Enable tests
   if [ \$stage == "run" ]; then
@@ -88,6 +90,7 @@ for s in "\${TESTS[@]}"; do
     -DCMAKE_CXX_COMPILER=\$CXX_COMPILER \
     -DCMAKE_BUILD_TYPE=\$BUILD_TYPE \
     -DBUILD_SHARED_LIBS:BOOL=\$BUILD_SHARED_LIBS \
+    -DENABLE_ALL_WARNINGS=\$ENABLE_ALL_WARNINGS \
     -DENABLE_TESTS:BOOL=\$ENABLE_TESTS \
     -DENABLE_MPI:BOOL=\$ENABLE_MPI \
     -DENABLE_HIP:BOOL=\$ENABLE_HIP
