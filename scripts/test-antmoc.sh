@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # For slim toolkit 1.40.11
-sudo -Hi -u hpcer bash << EOF
+sudo -Hi -u hpcer bash -i << EOF
 set -e
 whoami
 
@@ -14,7 +14,7 @@ cp -r /opt/mnt/ant-moc/. \$WORKDIR/
 cd \$WORKDIR
 
 # Setup environment
-source \$HOME/.bashrc
+source ~/.bashrc
 spack debug report
 spack find -v antmoc
 
