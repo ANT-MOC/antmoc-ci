@@ -14,5 +14,8 @@ slim build --target $IMAGE \
   --include-path /opt/spack \
   --include-path /opt/software \
   --include-path /opt/repo \
+  --exclude-pattern /usr/lib/x86_64-linux-gnu/dri \
+  --preserve-path /tmp \
+  --path-perms /usr/bin/sudo:4755 \
   --entrypoint /bin/bash \
-  --exec-file ./scripts/build-antmoc.sh
+  --exec-file ./scripts/test-antmoc.sh

@@ -33,13 +33,13 @@ GIT_COMMIT = $(strip $(shell git rev-parse --short HEAD))
 # Targets to Build
 #===============================================================================
 
-.PHONY : docker_build docker_push output
+.PHONY : build push output build_full push_full output_full
 
 default: build
-build: docker_build output
-release: docker_build docker_push output
+release: build push output
+release_full: build_full push_full output_full
 
-docker_build:
+build:
 	# Build Docker image
 	docker build \
                  --build-arg UBUNTU_CODE=$(UBUNTU_CODE) \
@@ -51,7 +51,7 @@ docker_build:
                  --build-arg VCS_REF=$(GIT_COMMIT) \
                  -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
 
-docker_push:
+push:
 	# Tag image as latest
 	docker tag $(DOCKER_IMAGE):$(DOCKER_TAG) $(DOCKER_IMAGE):latest
 
@@ -61,3 +61,23 @@ docker_push:
 
 output:
 	@echo Docker Image: $(DOCKER_IMAGE):$(DOCKER_TAG)
+
+build_full:
+	# Build Docker image with ROCm
+	docker build \
+                 --build-arg UBUNTU_CODE=$(UBUNTU_CODE) \
+                 --build-arg SPACK_VERSION=$(SPACK_VERSION) \
+                 --build-arg SPACK_IMAGE=$(SPACK_IMAGE) \
+                 --build-arg TARGET=$(TARGET) \
+                 --build-arg BUILD_DATE=$(BUILD_DATE) \
+                 --build-arg VCS_URL=$(VCS_URL) \
+                 --build-arg VCS_REF=$(GIT_COMMIT) \
+								 -f ./Dockerfile-full \
+                 -t $(DOCKER_IMAGE):$(DOCKER_TAG)-full .
+
+push_full:
+	# Push to DockerHub
+	docker push $(DOCKER_IMAGE):$(DOCKER_TAG)-full
+
+output_full:
+	@echo Docker Image: $(DOCKER_IMAGE):$(DOCKER_TAG)-full
