@@ -184,8 +184,8 @@ RUN (echo "export SPACK_ROOT=$SPACK_ROOT" \
 #-------------------------------------------------------------------------------
 # Reset the entrypoint and CMD
 #-------------------------------------------------------------------------------
-ENTRYPOINT ["/bin/bash", "-l", "-c"]
-CMD []
+ENTRYPOINT []
+CMD ["/bin/bash"]
 
 #-----------------------------------------------------------------------
 # Build-time metadata as defined at http://label-schema.org
