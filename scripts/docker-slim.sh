@@ -4,7 +4,7 @@ IMAGE=${1:-"antmoc/antmoc-ci:0.1.16-alpha"}
 NEWTAG=${IMAGE%-*}
 
 /opt is the largest directory
-slim build --target $IMAGE \
+slim build \
   --mount $(pwd)/ant-moc:/opt/mnt/ant-moc \
   --mount $(pwd)/scripts:/opt/mnt/scripts \
   --http-probe=false \
@@ -19,5 +19,6 @@ slim build --target $IMAGE \
   --exclude-pattern /usr/lib/x86_64-linux-gnu/dri \
   --preserve-path /tmp \
   --path-perms /usr/bin/sudo:4755 \
+  --target $IMAGE \
   --tag $NEWTAG \
   --exec-file ./scripts/test-antmoc.sh
