@@ -27,8 +27,8 @@ GENERATOR=/opt/mnt/scripts/generate-test.py
 #   "clang serial run" "clang mpich run" \
 #   "hipcc serial build" "hipcc mpich build" "hipcc openmpi build" )
 declare -a TESTS=( \
-  "gcc serial run" "gcc mpich run" "gcc openmpi run" \
-  "clang serial run" "clang mpich run" )
+  "gcc serial install" "gcc mpich install" "gcc openmpi install" \
+  "clang serial install" "clang mpich install" )
 
 # Run tests
 for jobspec in "\${TESTS[@]}"; do

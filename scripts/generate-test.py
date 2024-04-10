@@ -82,4 +82,9 @@ cmake --build build -j$(nproc)
 )
 
 if job.stage in ["run", "install"]:
-    print(f"ctest --test-dir build --output-on-failure {'--schedule-random' if job.random_test else ''}")
+    print(
+        f"ctest --test-dir build --output-on-failure {'--schedule-random' if job.random_test else ''}"
+    )
+
+if job.stage in ["install"]:
+    print(f"cmake --install build && ldd antmoc")
