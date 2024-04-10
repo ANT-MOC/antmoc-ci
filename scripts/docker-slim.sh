@@ -5,6 +5,7 @@ IMAGE=${1:-"antmoc/antmoc-ci:0.1.16-alpha"}
 # /opt is the largest directory
 slim build --target $IMAGE \
   --mount $(pwd)/ant-moc:/opt/mnt/ant-moc \
+  --mount $(pwd)/scripts:/opt/mnt/scripts \
   --http-probe=false \
   --show-clogs \
   --include-path /root \
