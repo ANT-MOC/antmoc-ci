@@ -2,3 +2,5 @@ __pycache__/
 /mirror/
 /ant-moc/
 /antmoc/
+.spack-env/
+spack.lock
