@@ -98,17 +98,20 @@ RUN find -L "${INSTALL_DIR}" -type f -exec readlink -f '{}' \; | \
   awk -F: '{print $1}' | \
   xargs strip -s
 
-# See https://github.com/open-mpi/ompi/pull/5598
-ENV OMPI_ALLOW_RUN_AS_ROOT=1 OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
-
 #-------------------------------------------------------------------------------
 # Reset the entrypoint or CMD
 # In case it's broken, see /opt/spack/share/spack/docker/entrypoint.bash
 #-------------------------------------------------------------------------------
 RUN <<EOF bash # create a script for activating the env
-( \
-echo ". ${SPACK_ROOT}/share/spack/setup-env.sh" \
-&& spack env activate --sh -d ${ENV_DIR} ) > ~/setup-env.sh
+cat << EOF1 > ~/setup-env.sh
+# Spack
+. ${SPACK_ROOT}/share/spack/setup-env.sh
+# Spack environment
+$(spack env activate --sh -d ${ENV_DIR})
+# See https://github.com/open-mpi/ompi/pull/5598
+export OMPI_ALLOW_RUN_AS_ROOT=1
+export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
+EOF1
 chmod a+x ~/setup-env.sh
 EOF
 
