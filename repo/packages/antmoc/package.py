@@ -10,7 +10,7 @@ class Antmoc(BundlePackage):
 
     license("MIT")
 
-    version('develop')
+    version('develop', preferred=True)
     version('0.1.15')
     version('0.1.14')
 

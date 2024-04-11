@@ -7,11 +7,12 @@ spack:
   specs:
   - cmake%gcc
   - lcov@=1.16%gcc
-  - antmoc%clang~mpi
-  - antmoc%clang+mpi ^mpich@=4.1.2%clang~fortran
-  - antmoc%gcc~mpi
-  - antmoc%gcc+mpi ^mpich@=4.1.2%gcc~fortran
-  - antmoc%gcc+mpi ^openmpi@=4.1.6%gcc
+  - valgrind@3.20%gcc
+  - antmoc@develop%clang~mpi
+  - antmoc@develop%clang+mpi ^mpich@=4.1.2%clang~fortran
+  - antmoc@develop%gcc~mpi
+  - antmoc@develop%gcc+mpi ^mpich@=4.1.2%gcc~fortran
+  - antmoc@develop%gcc+mpi ^openmpi@=4.1.6%gcc
   view: false
   concretizer:
     unify: when_possible

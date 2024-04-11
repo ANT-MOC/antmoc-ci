@@ -71,4 +71,4 @@ if job.stage in ["run", "install"]:
     )
 
 if job.stage in ["install"]:
-    print(f"cmake --install {job.build_dir} && ldd antmoc")
+    print(f"cmake --install {job.build_dir} && ldd $(which antmoc)")
