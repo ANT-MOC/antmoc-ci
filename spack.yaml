@@ -7,7 +7,7 @@ spack:
   specs:
   - cmake%gcc
   - lcov@=1.16%gcc
-  - valgrind@3.20%gcc
+  - valgrind@3.20%gcc ^mpich@=4.1.2%gcc~fortran
   - antmoc@develop%clang~mpi
   - antmoc@develop%clang+mpi ^mpich@=4.1.2%clang~fortran
   - antmoc@develop%gcc~mpi

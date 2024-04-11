@@ -27,6 +27,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     libomp-15-dev \
     sudo \
     cmake \
+    gcovr \
     openssh-server
 apt-get clean
 rm -rf /var/lib/apt/lists/*
