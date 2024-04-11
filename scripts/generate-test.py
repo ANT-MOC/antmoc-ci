@@ -17,34 +17,28 @@ for name, value in opts:
 # -------------------------------------------------------------------------------
 # Helpers
 # -------------------------------------------------------------------------------
-# tuples for (CXX compiler, compiler specs)
+# compiler specs
 cc_specs = {
-    "gcc": ("g++", "%gcc"),
-    "clang": ("clang++", "%clang"),
-    "hipcc": ("hipcc", "%gcc"),
+    "gcc": "%gcc",
+    "clang": "%clang",
+    "hipcc": "%gcc",
 }
 
 # mpi specs
 mpi_specs = {"serial": "~mpi", "mpich": "+mpi^mpich", "openmpi": "+mpi^openmpi"}
 
 
-def on_off(bool_value):
-    return "ON" if bool_value else "OFF"
-
-
 class Job:
-    def __init__(self, compiler, mpi, stage):
-        self.cc = compiler
-        self.cxx = cc_specs[compiler][0]
-        self.cc_spec = cc_specs[compiler][1]
+    def __init__(self, cc, mpi, stage):
+        self.cc = cc
         self.mpi = mpi
-        self.mpi_spec = mpi_specs[mpi]
         self.stage = stage
 
-        self.use_mpi = self.mpi != "serial"
-        self.use_hip = self.cc == "hipcc"
-        self.random_test = self.mpi == "serial"  # if no mpi
-        self.use_spec = f"antmoc {self.cc_spec} {self.mpi_spec}"
+        # preset name: compiler?-mpi?-debug
+        self.preset = f"{cc}-{'serial' if mpi=='serial' else 'mpi'}-debug"
+        self.build_dir = f"build/{self.preset}"
+        self.use_spec = f"antmoc {cc_specs[cc]} {mpi_specs[mpi]}"
+        self.random_test = "ON" if self.mpi == "serial" else "OFF"  # no mpi
 
     def __str__(self):
         return f"({self.cc}, {self.mpi}, <={self.stage})"
@@ -65,26 +59,16 @@ spack unload --all
 spack load cmake%gcc {job.use_spec}
 spack find --loaded
 
-rm -rf build/ &> /dev/null
-
-cmake -S . -B build \\
-    -DCMAKE_C_COMPILER={job.cc} \\
-    -DCMAKE_CXX_COMPILER={job.cxx} \\
-    -DCMAKE_BUILD_TYPE=Release \\
-    -DBUILD_SHARED_LIBS:BOOL=ON \\
-    -DENABLE_ALL_WARNINGS=OFF \\
-    -DENABLE_TESTS:BOOL=ON \\
-    -DENABLE_MPI:BOOL={job.use_mpi} \\
-    -DENABLE_HIP:BOOL={job.use_hip}
-
-cmake --build build -j$(nproc)
+rm -rf {job.build_dir} &> /dev/null
+cmake --preset {job.preset}
+cmake --build {job.build_dir} -j$(nproc)
 """
 )
 
 if job.stage in ["run", "install"]:
     print(
-        f"ctest --test-dir build --output-on-failure {'--schedule-random' if job.random_test else ''}"
+        f"ctest --test-dir {job.build_dir} --output-on-failure {'--schedule-random' if job.random_test else ''}"
     )
 
 if job.stage in ["install"]:
-    print(f"cmake --install build && ldd antmoc")
+    print(f"cmake --install {job.build_dir} && ldd antmoc")
