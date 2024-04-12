@@ -25,6 +25,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     llvm-15 \
     clang-15 \
     libomp-15-dev \
+    libc6-dbg \
     sudo \
     cmake \
     gcovr \

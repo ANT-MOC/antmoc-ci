@@ -17,7 +17,7 @@ slim build \
   --include-path /opt/software \
   --include-path /opt/repo \
   --exclude-pattern /usr/lib/x86_64-linux-gnu/dri \
-  --preserve-path /tmp \
+  --preserve-path /root \
   --path-perms /usr/bin/sudo:4755 \
   --target $IMAGE \
   --tag $NEWTAG \

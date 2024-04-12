@@ -9,7 +9,7 @@ env
 spack debug report
 spack find -v antmoc
 
-WORKDIR=/tmp/ant-moc
+WORKDIR=/root/ant-moc
 [ -d \$WORKDIR ] && rm -rf \$WORKDIR && mkdir \$WORKDIR
 
 # Always mount ANT-MOC to this directory in containers
@@ -37,5 +37,4 @@ for jobspec in "\${TESTS[@]}"; do
 EOF1
 done
 
-cd && rm -rf \$WORKDIR
 EOF
