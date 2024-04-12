@@ -1,7 +1,7 @@
 # See https://github.com/slimtoolkit/slim
 
 IMAGE=${1:-"antmoc/antmoc-ci:0.1.16-alpha"}
-NEWTAG=${IMAGE%-*}-slim
+NEWTAG=${IMAGE%-*}
 
 /opt is the largest directory
 slim build \

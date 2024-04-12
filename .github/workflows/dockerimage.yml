@@ -6,53 +6,52 @@ on:
       - 'v*'
 
 jobs:
-  main:
+  build:
     runs-on: ubuntu-latest
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       -
         name: Docker meta
         id: docker_meta
-        uses: crazy-max/ghaction-docker-meta@v1
+        uses: crazy-max/ghaction-docker-meta@v5
         with:
-          images: antmoc/antmoc-ci
-          tag-semver: |
-            {{version}}
-            {{major}}.{{minor}}
+          images: |
+            antmoc/antmoc-ci
+          tags: |
+            type=semver,pattern={{version}}
       -
         name: Prepare arguments
         id: prep
         run: |
-          echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-          echo ::set-output name=vcs_url::$(git config --get remote.origin.url)
-          echo ::set-output name=vcs_ref::$(git rev-parse --short HEAD)
+          echo ::set-output name=oci_created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          echo ::set-output name=oci_source::$(git config --get remote.origin.url)
+          echo ::set-output name=oci_revision::$(git rev-parse --short HEAD)
       -
         name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v3
       -
         name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v3
       -
         name: Login to DockerHub
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
       -
         name: Build and push
         id: docker_build
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile
           platforms: linux/amd64
           build-args: |
-            BUILD_DATE=${{ steps.prep.outputs.created }}
-            VCS_URL=${{ steps.prep.outputs.vcs_url }}
-            VCS_REF=${{ steps.prep.outputs.vcs_ref }}
+            OCI_CREATED=${{ steps.prep.outputs.oci_created }}
+            OCI_SOURCE=${{ steps.prep.outputs.oci_source }}
+            OCI_REVISION=${{ steps.prep.outputs.oci_revision }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.docker_meta.outputs.tags }}
           labels: ${{ steps.docker_meta.outputs.labels }}
