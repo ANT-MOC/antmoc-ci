@@ -23,8 +23,8 @@ USER_NAME ?= hpcer
 # Variables and objects
 #===============================================================================
 
-BUILD_DATE=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
-VCS_URL=$(shell git config --get remote.origin.url)
+OCI_CREATED=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+OCI_SOURCE=$(shell git config --get remote.origin.url)
 
 # Get the latest commit
 GIT_COMMIT = $(strip $(shell git rev-parse --short HEAD))
@@ -46,9 +46,9 @@ build:
                  --build-arg SPACK_VERSION=$(SPACK_VERSION) \
                  --build-arg SPACK_IMAGE=$(SPACK_IMAGE) \
                  --build-arg TARGET=$(TARGET) \
-                 --build-arg BUILD_DATE=$(BUILD_DATE) \
-                 --build-arg VCS_URL=$(VCS_URL) \
-                 --build-arg VCS_REF=$(GIT_COMMIT) \
+                 --build-arg OCI_CREATED=$(OCI_CREATED) \
+                 --build-arg OCI_SOURCE=$(OCI_SOURCE) \
+                 --build-arg OCI_REVISION=$(GIT_COMMIT) \
                  -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
 
 push:
@@ -69,9 +69,9 @@ build_full:
                  --build-arg SPACK_VERSION=$(SPACK_VERSION) \
                  --build-arg SPACK_IMAGE=$(SPACK_IMAGE) \
                  --build-arg TARGET=$(TARGET) \
-                 --build-arg BUILD_DATE=$(BUILD_DATE) \
-                 --build-arg VCS_URL=$(VCS_URL) \
-                 --build-arg VCS_REF=$(GIT_COMMIT) \
+                 --build-arg OCI_CREATED=$(OCI_CREATED) \
+                 --build-arg OCI_SOURCE=$(OCI_SOURCE) \
+                 --build-arg OCI_REVISION=$(GIT_COMMIT) \
 								 -f ./Dockerfile-full \
                  -t $(DOCKER_IMAGE):$(DOCKER_TAG)-full .
 

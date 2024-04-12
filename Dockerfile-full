@@ -210,14 +210,14 @@ ENTRYPOINT []
 CMD ["/bin/bash"]
 
 #-----------------------------------------------------------------------
-# Build-time metadata as defined at http://label-schema.org
+# OCI annotations
 #-----------------------------------------------------------------------
-ARG BUILD_DATE
-ARG VCS_REF
-ARG VCS_URL
-LABEL org.label-schema.build-date=${BUILD_DATE} \
-      org.label-schema.name="ANT-MOC CI image" \
-      org.label-schema.description="Provides tools for ANT-MOC CI" \
-      org.label-schema.vcs-ref=${VCS_REF} \
-      org.label-schema.vcs-url=${VCS_URL} \
-      org.label-schema.schema-version="0.1"
+  ARG OCI_CREATED
+  ARG OCI_REVISION
+  ARG OCI_SOURCE
+  LABEL org.opencontainers.image.created=${OCI_CREATED} \
+    org.opencontainers.image.source=${OCI_SOURCE} \
+    org.opencontainers.image.revision=${OCI_REVISION} \
+    org.opencontainers.image.title="ANT-MOC CI image" \
+    org.opencontainers.image.description="Tools for ANT-MOC CI pipelines" \
+    org.opencontainers.image.url="https://hub.docker.com/r/antmoc/antmoc-ci"
