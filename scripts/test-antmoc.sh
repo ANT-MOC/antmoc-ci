@@ -37,4 +37,6 @@ for jobspec in "\${TESTS[@]}"; do
 EOF1
 done
 
+cd && rm -rf \$WORKDIR
+history -c
 EOF
