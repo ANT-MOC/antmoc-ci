@@ -8,7 +8,7 @@ ANT-MOC CI
 
 Official ANT-MOC CI images starting from 0.1.15.
 
-> Legacy images (before 0.1.15) could be found at
->
-> - DockerHub: [leavesask/antmoc-ci](https://hub.docker.com/r/leavesask/antmoc-ci)
-> - GitHub: [docker-antmoc-ci](https://github.com/alephpiece/docker-antmoc-ci)
+Legacy images (before 0.1.15) could be found at
+
+- DockerHub: [leavesask/antmoc-ci](https://hub.docker.com/r/leavesask/antmoc-ci)
+- GitHub: [docker-antmoc-ci](https://github.com/alephpiece/docker-antmoc-ci)

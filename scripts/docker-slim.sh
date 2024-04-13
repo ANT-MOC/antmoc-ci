@@ -3,7 +3,6 @@
 IMAGE=${1:-"antmoc/antmoc-ci:0.1.16-alpha"}
 NEWTAG=${IMAGE%-*}
 
-/opt is the largest directory
 slim build \
   --mount $(pwd)/ant-moc:/opt/mnt/ant-moc \
   --mount $(pwd)/scripts:/opt/mnt/scripts \
